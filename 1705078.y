@@ -42,6 +42,12 @@ void yyerror(char *s)
 	char* name;
 	char* code;				//assembly code, needed in function, loops and if-else
 
+	struct non_expression_struct
+	{
+		char* name;
+		char* code;			//assembly code, needed in function, loops and if-else
+	}	non_expression_structure;
+
 	struct expression_struct
 	{
 		SymbolInfo* symbolinfo;	//to store information about data type; for Semantic analysis
@@ -49,8 +55,8 @@ void yyerror(char *s)
 		char* var;			//integer constant/variable/temporary variable holding the value of the expression
 		char* type;			//"VAR", "ARR", "CONST" or "ARRVAR"
 		char* index;			//needed in arrays, stores the integer constant/variable/temporary variable holding the index of the array
-		char* index_type;		//type of the index: "VAR", "CONST" or "ARRVAR"
-	}	structure;
+		char* code;		//assembly code, needed in function, loops and if-else
+	}	expression_structure;
 }
 
 %token IF FOR DO INT FLOAT VOID SWITCH DEFAULT ELSE WHILE BREAK CHAR DOUBLE RETURN CASE CONTINUE MAIN PRINTLN
@@ -68,11 +74,11 @@ void yyerror(char *s)
 %nonassoc error
 
 %type <symbolinfo> ID STRING ADDOP MULOP RELOP LOGICOP CONST_INT CONST_FLOAT CONST_CHAR
-%type <name> declaration_list type_specifier var_declaration unit program start func_declaration parameter_list
+%type <non_expression_structure> declaration_list type_specifier var_declaration unit program start func_declaration parameter_list
 
-%type <name> func_definition compound_statement statements statement expression_statement argument_list arguments
+%type <non_expression_structure> func_definition compound_statement statements statement expression_statement argument_list arguments
 
-%type <structure> expression logic_expression rel_expression term unary_expression factor simple_expression variable
+%type <expression_structure> expression logic_expression rel_expression term unary_expression factor simple_expression variable
 
 //%error-verbose
 
@@ -80,164 +86,164 @@ void yyerror(char *s)
 
 start : program
 	{
-		$$ = string_to_char_array(string($1));
+		$$.name = string_to_char_array(string($1.name));
 		parserlog << "Line " << yylineno-1 << ": start : program\n\n";
-		//parserlog << $$ << "\n\n";
+		//parserlog << $$.name << "\n\n";
 	}
 	;
 
 program : program unit
 	{
-		$$ = string_to_char_array(string($1) + "\n" + string($2));
-		parserlog << "Line " << yylineno << ": program : program unit\n\n" << $$ << "\n\n";
+		$$.name = string_to_char_array(string($1.name) + "\n" + string($2.name));
+		parserlog << "Line " << yylineno << ": program : program unit\n\n" << $$.name << "\n\n";
 	}
 	| unit
 	{
-		$$ = string_to_char_array(string($1));
-		parserlog << "Line " << yylineno << ": program : unit\n\n" << $$ << "\n\n";
+		$$.name = string_to_char_array(string($1.name));
+		parserlog << "Line " << yylineno << ": program : unit\n\n" << $$.name << "\n\n";
 	}
 	;
 	
 unit : var_declaration
 		{
-			$$ = string_to_char_array(string($1));
-			parserlog << "Line " << yylineno << ": unit : var_declaration\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name));
+			parserlog << "Line " << yylineno << ": unit : var_declaration\n\n" << $$.name << "\n\n";
 		}
 	| func_declaration
 		{
-			$$ = string_to_char_array(string($1));
-			parserlog << "Line " << yylineno << ": unit : func_declaration\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name));
+			parserlog << "Line " << yylineno << ": unit : func_declaration\n\n" << $$.name << "\n\n";
 		}
 	| func_definition
 		{
-			$$ = string_to_char_array(string($1));
-			parserlog << "Line " << yylineno << ": unit : func_definition\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name));
+			parserlog << "Line " << yylineno << ": unit : func_definition\n\n" << $$.name << "\n\n";
 		}
      ;
 
 func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
 		{
-			$$ = string_to_char_array(string($1)+" "+$2->getSymbol_name()+"("+ string($4) +");");
-			parserlog << "Line " << yylineno << ": func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name)+" "+$2->getSymbol_name()+"("+ string($4.name) +");");
+			parserlog << "Line " << yylineno << ": func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON\n\n" << $$.name << "\n\n";
 		
 			//function found, time for insertion
-			insert_function_into_symbol_table($2->getSymbol_name(), string($1));
+			insert_function_into_symbol_table($2->getSymbol_name(), string($1.name));
 			variables.clear();
 		}
 		| type_specifier ID LPAREN RPAREN SEMICOLON
 		{
-			$$ = string_to_char_array(string($1)+" "+$2->getSymbol_name()+"();");
-			parserlog << "Line " << yylineno << ": func_declaration : type_specifier ID LPAREN RPAREN SEMICOLON\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name)+" "+$2->getSymbol_name()+"();");
+			parserlog << "Line " << yylineno << ": func_declaration : type_specifier ID LPAREN RPAREN SEMICOLON\n\n" << $$.name << "\n\n";
 
 			//function found, time for insertion
-			insert_function_into_symbol_table($2->getSymbol_name(), string($1));
+			insert_function_into_symbol_table($2->getSymbol_name(), string($1.name));
 			variables.clear();
 		}
 		;
 
-func_definition : type_specifier ID LPAREN parameter_list RPAREN {match_function_definition_and_declaration(string($1), $2->getSymbol_name());} compound_statement
+func_definition : type_specifier ID LPAREN parameter_list RPAREN {match_function_definition_and_declaration(string($1.name), $2->getSymbol_name());} compound_statement
 		{
-			$$ = string_to_char_array(string($1)+" "+$2->getSymbol_name()+"("+string($4)+")"+string($7)+"\n");
-			parserlog << "Line " << yylineno << ": func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name)+" "+$2->getSymbol_name()+"("+string($4.name)+")"+string($7.name)+"\n");
+			parserlog << "Line " << yylineno << ": func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement\n\n" << $$.name << "\n\n";
 
-			//match_function_definition_and_declaration(string($1), $2->getSymbol_name());
+			//match_function_definition_and_declaration(string($1.name), $2->getSymbol_name());
 		}
-		| type_specifier ID LPAREN RPAREN {match_function_definition_and_declaration(string($1), $2->getSymbol_name());} compound_statement
+		| type_specifier ID LPAREN RPAREN {match_function_definition_and_declaration(string($1.name), $2->getSymbol_name());} compound_statement
 		{
-			$$ = string_to_char_array(string($1)+" "+$2->getSymbol_name()+"()"+string($6)+"\n");
-			parserlog << "Line " << yylineno << ": func_definition : type_specifier ID LPAREN RPAREN compound_statement\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name)+" "+$2->getSymbol_name()+"()"+string($6.name)+"\n");
+			parserlog << "Line " << yylineno << ": func_definition : type_specifier ID LPAREN RPAREN compound_statement\n\n" << $$.name << "\n\n";
 
-			//match_function_definition_and_declaration(string($1), $2->getSymbol_name());
+			//match_function_definition_and_declaration(string($1.name), $2->getSymbol_name());
 		}
  		;
 
 parameter_list : parameter_list COMMA type_specifier ID
 		{
-			$$ = string_to_char_array(string($1)+","+string($3)+" "+$4->getSymbol_name());
-			parserlog << "Line " << yylineno << ": parameter_list : parameter_list COMMA type_specifier ID\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name)+","+string($3.name)+" "+$4->getSymbol_name());
+			parserlog << "Line " << yylineno << ": parameter_list : parameter_list COMMA type_specifier ID\n\n" << $$.name << "\n\n";
 
-			$4->setVar_type(string($3));
+			$4->setVar_type(string($3.name));
 			save_variable($4, "VARIABLE");
 		}
 		| parameter_list COMMA type_specifier
 		{
-			$$ = string_to_char_array(string($1)+","+string($3));
-			parserlog << "Line " << yylineno << ": parameter_list : parameter_list COMMA type_specifier\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name)+","+string($3.name));
+			parserlog << "Line " << yylineno << ": parameter_list : parameter_list COMMA type_specifier\n\n" << $$.name << "\n\n";
 
 			SymbolInfo* s = new SymbolInfo("", "ID");
-			s->setVar_type(string($3));
+			s->setVar_type(string($3.name));
 			save_variable(s, "VARIABLE");
 		}
  		| type_specifier ID %prec PARAMETER_LIST_RULE_WITHOUT_ERROR
 		{
-			$$ = string_to_char_array(string($1)+" "+$2->getSymbol_name());
-			parserlog << "Line " << yylineno << ": parameter_list : type_specifier ID\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name)+" "+$2->getSymbol_name());
+			parserlog << "Line " << yylineno << ": parameter_list : type_specifier ID\n\n" << $$.name << "\n\n";
 
-			$2->setVar_type(string($1));
+			$2->setVar_type(string($1.name));
 			save_variable($2, "VARIABLE");			
 		}
 		| type_specifier %prec PARAMETER_LIST_RULE_WITHOUT_ERROR
 		{
-			$$ = string_to_char_array(string($1));
-			parserlog << "Line " << yylineno << ": parameter_list : type_specifier\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name));
+			parserlog << "Line " << yylineno << ": parameter_list : type_specifier\n\n" << $$.name << "\n\n";
 
 			SymbolInfo* s = new SymbolInfo("", "ID");
-			s->setVar_type(string($1));
+			s->setVar_type(string($1.name));
 			save_variable(s, "VARIABLE");
 		}
 		| parameter_list error COMMA type_specifier ID
 		{
 			yyerrok;
-			$$ = string_to_char_array(string($1)+","+string($4)+" "+$5->getSymbol_name());
-			parserlog << "Line " << yylineno << ": parameter_list : parameter_list COMMA type_specifier ID\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name)+","+string($4.name)+" "+$5->getSymbol_name());
+			parserlog << "Line " << yylineno << ": parameter_list : parameter_list COMMA type_specifier ID\n\n" << $$.name << "\n\n";
 
-			$5->setVar_type(string($4));
+			$5->setVar_type(string($4.name));
 			save_variable($5, "VARIABLE");
 		}
 		| parameter_list error COMMA type_specifier
 		{
 			yyerrok;
-			$$ = string_to_char_array(string($1)+","+string($4));
-			parserlog << "Line " << yylineno << ": parameter_list : parameter_list COMMA type_specifier\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name)+","+string($4.name));
+			parserlog << "Line " << yylineno << ": parameter_list : parameter_list COMMA type_specifier\n\n" << $$.name << "\n\n";
 
 			SymbolInfo* s = new SymbolInfo("", "ID");
-			s->setVar_type(string($4));
+			s->setVar_type(string($4.name));
 			save_variable(s, "VARIABLE");
 		}
  		| type_specifier ID error
 		{
 			yyclearin;
 			yyerrok;
-			$$ = string_to_char_array(string($1)+" "+$2->getSymbol_name());
-			parserlog << "Line " << yylineno << ": parameter_list : type_specifier ID\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name)+" "+$2->getSymbol_name());
+			parserlog << "Line " << yylineno << ": parameter_list : type_specifier ID\n\n" << $$.name << "\n\n";
 
-			$2->setVar_type(string($1));
+			$2->setVar_type(string($1.name));
 			save_variable($2, "VARIABLE");			
 		}
 		| type_specifier error
 		{
 			yyclearin;
 			yyerrok;
-			$$ = string_to_char_array(string($1));
-			parserlog << "Line " << yylineno << ": parameter_list : type_specifier\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name));
+			parserlog << "Line " << yylineno << ": parameter_list : type_specifier\n\n" << $$.name << "\n\n";
 
 			SymbolInfo* s = new SymbolInfo("", "ID");
-			s->setVar_type(string($1));
+			s->setVar_type(string($1.name));
 			save_variable(s, "VARIABLE");
 		}
  		;
 
 compound_statement : LCURL {Enter_scope();} statements RCURL
 			{
-				$$ = string_to_char_array("{\n" + string($3) + "\n}");
-				parserlog << "Line " << yylineno << ": compound_statement : LCURL statements RCURL\n\n" << $$ << "\n\n";
+				$$.name = string_to_char_array("{\n" + string($3.name) + "\n}");
+				parserlog << "Line " << yylineno << ": compound_statement : LCURL statements RCURL\n\n" << $$.name << "\n\n";
 
 				Exit_scope();
 			}
  		    | LCURL {Enter_scope();} RCURL
 			{
-				$$ = string_to_char_array("{\n}");
-				parserlog << "Line " << yylineno << ": compound_statement : LCURL RCURL\n\n" << $$ << "\n\n";
+				$$.name = string_to_char_array("{\n}");
+				parserlog << "Line " << yylineno << ": compound_statement : LCURL RCURL\n\n" << $$.name << "\n\n";
 
 				Exit_scope();
 			}
@@ -245,10 +251,10 @@ compound_statement : LCURL {Enter_scope();} statements RCURL
  		    
 var_declaration : type_specifier declaration_list SEMICOLON
 		{
-			$$ = string_to_char_array(string($1)+" "+string($2)+";");
-			parserlog << "Line " << yylineno << ": var_declaration : type_specifier declaration_list SEMICOLON\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name)+" "+string($2.name)+";");
+			parserlog << "Line " << yylineno << ": var_declaration : type_specifier declaration_list SEMICOLON\n\n" << $$.name << "\n\n";
 
-			if($1 == "void")
+			if(string($1.name) == "void")
 			{
 				parserlog << "Error at line " << yylineno << ": Variable type cannot be void." << "\n\n";
 				errorlog << "Error at line " << yylineno << ": Variable type cannot be void." << "\n\n";
@@ -259,40 +265,40 @@ var_declaration : type_specifier declaration_list SEMICOLON
 			
 			else
 			//time to insert variables in the declaration list into the SymbolTable
-				insert_variables_into_symbol_table(string($1));
+				insert_variables_into_symbol_table(string($1.name));
 		}
  		 ;
  		 
-type_specifier : INT	{parserlog << "Line " << yylineno << ": type_specifier : INT\n\n" << "int" << "\n\n"; $$ = "int";}
- 		| FLOAT			{parserlog << "Line " << yylineno << ": type_specifier : FLOAT\n\n" << "float" << "\n\n"; $$ = "float";}
- 		| VOID			{parserlog << "Line " << yylineno << ": type_specifier : VOID\n\n" << "void" << "\n\n"; $$ = "void";}
+type_specifier : INT	{parserlog << "Line " << yylineno << ": type_specifier : INT\n\n" << "int" << "\n\n"; $$.name = "int";}
+ 		| FLOAT			{parserlog << "Line " << yylineno << ": type_specifier : FLOAT\n\n" << "float" << "\n\n"; $$.name = "float";}
+ 		| VOID			{parserlog << "Line " << yylineno << ": type_specifier : VOID\n\n" << "void" << "\n\n"; $$.name = "void";}
  		;
  		
 declaration_list : declaration_list COMMA ID
 		{
-			$$ = string_to_char_array(string($1)+","+$3->getSymbol_name());
-			parserlog << "Line " << yylineno << ": declaration_list : declaration_list COMMA ID\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name)+","+$3->getSymbol_name());
+			parserlog << "Line " << yylineno << ": declaration_list : declaration_list COMMA ID\n\n" << $$.name << "\n\n";
 
 			save_variable($3, "VARIABLE");
 		}
  		  | declaration_list COMMA ID LTHIRD CONST_INT RTHIRD
 		{
-			$$ = string_to_char_array(string($1)+","+$3->getSymbol_name()+"["+$5->getSymbol_name()+"]");
-			parserlog << "Line " << yylineno << ": declaration_list : declaration_list COMMA ID LTHIRD CONST_INT RTHIRD\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name)+","+$3->getSymbol_name()+"["+$5->getSymbol_name()+"]");
+			parserlog << "Line " << yylineno << ": declaration_list : declaration_list COMMA ID LTHIRD CONST_INT RTHIRD\n\n" << $$.name << "\n\n";
 
 			save_variable($3, "ARRAY", atoi($5->getSymbol_name().c_str()));
 		}
  		  | ID
 		{
-			$$ = string_to_char_array($1->getSymbol_name());
-			parserlog << "Line " << yylineno << ": declaration_list : ID\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array($1->getSymbol_name());
+			parserlog << "Line " << yylineno << ": declaration_list : ID\n\n" << $$.name << "\n\n";
 
 			save_variable($1, "VARIABLE");
 		}
  		  | ID LTHIRD CONST_INT RTHIRD
 		{
-			$$ = string_to_char_array($1->getSymbol_name()+"["+$3->getSymbol_name()+"]");
-			parserlog << "Line " << yylineno << ": declaration_list : ID LTHIRD CONST_INT RTHIRD\n\n" << $$ << "\n\n";
+			$$.name= string_to_char_array($1->getSymbol_name()+"["+$3->getSymbol_name()+"]");
+			parserlog << "Line " << yylineno << ": declaration_list : ID LTHIRD CONST_INT RTHIRD\n\n" << $$.name << "\n\n";
 
 			save_variable($1, "ARRAY", atoi($3->getSymbol_name().c_str()));
 		}
@@ -301,7 +307,7 @@ declaration_list : declaration_list COMMA ID
 			//yyclearin;
 			yyerrok;
 
-			$$ = string_to_char_array(string($1)+","+$4->getSymbol_name());
+			$$.name = string_to_char_array(string($1.name)+","+$4->getSymbol_name());
 
 			save_variable($4, "VARIABLE");
 		}
@@ -310,7 +316,7 @@ declaration_list : declaration_list COMMA ID
 			//yyclearin;
 			yyerrok;
 
-			$$ = string_to_char_array(string($1)+","+$4->getSymbol_name()+"["+$6->getSymbol_name()+"]");
+			$$.name = string_to_char_array(string($1.name)+","+$4->getSymbol_name()+"["+$6->getSymbol_name()+"]");
 
 			save_variable($4, "ARRAY", atoi($6->getSymbol_name().c_str()));
 		}
@@ -319,7 +325,7 @@ declaration_list : declaration_list COMMA ID
 			//yyclearin;
 			yyerrok;
 
-			$$ = string_to_char_array($3->getSymbol_name());
+			$$.name = string_to_char_array($3->getSymbol_name());
 
 			save_variable($3, "VARIABLE");
 		}
@@ -328,7 +334,7 @@ declaration_list : declaration_list COMMA ID
 			//yyclearin;
 			yyerrok;
 
-			$$ = string_to_char_array($3->getSymbol_name()+"["+$5->getSymbol_name()+"]");
+			$$.name = string_to_char_array($3->getSymbol_name()+"["+$5->getSymbol_name()+"]");
 
 			save_variable($3, "ARRAY", atoi($5->getSymbol_name().c_str()));
 		}
@@ -336,55 +342,55 @@ declaration_list : declaration_list COMMA ID
 
 statements : statement
 		{
-			$$ = string_to_char_array(string($1));
-			parserlog << "Line " << yylineno << ": statements : statement\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name));
+			parserlog << "Line " << yylineno << ": statements : statement\n\n" << $$.name << "\n\n";
 		}
 	   | statements statement
 		{
-			$$ = string_to_char_array(string($1) + "\n" + string($2));
-			parserlog << "Line " << yylineno << ": statements : statements statement\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name) + "\n" + string($2.name));
+			parserlog << "Line " << yylineno << ": statements : statements statement\n\n" << $$.name << "\n\n";
 		}
 	   ;
 	   
 statement : var_declaration
 	{
-		$$ = string_to_char_array(string($1));
-		parserlog << "Line " << yylineno << ": statement : var_declaration\n\n" << $$ << "\n\n";
+		$$.name = string_to_char_array(string($1.name));
+		parserlog << "Line " << yylineno << ": statement : var_declaration\n\n" << $$.name << "\n\n";
 	}
 	  | expression_statement
 	{
-		$$ = string_to_char_array(string($1));
-		parserlog << "Line " << yylineno << ": statement : expression_statement\n\n" << $$ << "\n\n";
+		$$.name = string_to_char_array(string($1.name));
+		parserlog << "Line " << yylineno << ": statement : expression_statement\n\n" << $$.name << "\n\n";
 	}
 	  | compound_statement
 	{
-		$$ = string_to_char_array(string($1));
-		parserlog << "Line " << yylineno << ": statement : compound_statement\n\n" << $$ << "\n\n";
+		$$.name = string_to_char_array(string($1.name));
+		parserlog << "Line " << yylineno << ": statement : compound_statement\n\n" << $$.name << "\n\n";
 	}
 	  | FOR LPAREN expression_statement expression_statement expression RPAREN statement
 	{
-		$$ = string_to_char_array(string("for") + string("(") + string($3) + string($4) + string($5.name) + string(")") + string($7));
-		parserlog << "Line " << yylineno << ": statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement\n\n" << $$ << "\n\n";
+		$$.name = string_to_char_array(string("for") + string("(") + string($3.name) + string($4.name) + string($5.name) + string(")") + string($7.name));
+		parserlog << "Line " << yylineno << ": statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement\n\n" << $$.name << "\n\n";
 	}
 	  | IF LPAREN expression RPAREN statement %prec LOWER_THAN_ELSE
 	{
-		$$ = string_to_char_array(string("if ") + string("(") + string($3.name) + string(")") + string($5));
-		parserlog << "Line " << yylineno << ": statement : IF LPAREN expression RPAREN statement\n\n" << $$ << "\n\n";
+		$$.name = string_to_char_array(string("if ") + string("(") + string($3.name) + string(")") + string($5.name));
+		parserlog << "Line " << yylineno << ": statement : IF LPAREN expression RPAREN statement\n\n" << $$.name << "\n\n";
 	}
 	  | IF LPAREN expression RPAREN statement ELSE statement
 	{
-		$$ = string_to_char_array(string("if ") + string("(") + string($3.name) + string(")") + string($5) + "\nelse\n" + string($7));
-		parserlog << "Line " << yylineno << ": statement : IF LPAREN expression RPAREN statement ELSE statement\n\n" << $$ << "\n\n";
+		$$.name = string_to_char_array(string("if ") + string("(") + string($3.name) + string(")") + string($5.name) + "\nelse\n" + string($7.name));
+		parserlog << "Line " << yylineno << ": statement : IF LPAREN expression RPAREN statement ELSE statement\n\n" << $$.name << "\n\n";
 	}
 	  | WHILE LPAREN expression RPAREN statement
 	{
-		$$ = string_to_char_array(string("while ") + string("(") + string($3.name) + string(")") + string($5));
-		parserlog << "Line " << yylineno << ": statement : WHILE LPAREN expression RPAREN statement\n\n" << $$ << "\n\n";
+		$$.name = string_to_char_array(string("while ") + string("(") + string($3.name) + string(")") + string($5.name));
+		parserlog << "Line " << yylineno << ": statement : WHILE LPAREN expression RPAREN statement\n\n" << $$.name << "\n\n";
 	}
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON
 	{
-		$$ = string_to_char_array(string("printf") + string("(") + $3->getSymbol_name() + string(")") + string(";"));
-		parserlog << "Line " << yylineno << ": statement : PRINTLN LPAREN ID RPAREN SEMICOLON\n\n" << $$ << "\n\n";
+		$$.name = string_to_char_array(string("printf") + string("(") + $3->getSymbol_name() + string(")") + string(";"));
+		parserlog << "Line " << yylineno << ": statement : PRINTLN LPAREN ID RPAREN SEMICOLON\n\n" << $$.name << "\n\n";
 
 		if(!table->Lookup($3->getSymbol_name()))
 		{
@@ -395,15 +401,15 @@ statement : var_declaration
 	}
 	  | RETURN expression SEMICOLON
 	{
-		$$ = string_to_char_array(string("return ") + string($2.name) + string(";"));
-		parserlog << "Line " << yylineno << ": statement : RETURN expression SEMICOLON\n\n" << $$ << "\n\n";
+		$$.name = string_to_char_array(string("return ") + string($2.name) + string(";"));
+		parserlog << "Line " << yylineno << ": statement : RETURN expression SEMICOLON\n\n" << $$.name << "\n\n";
 	}
 	  ;
 	  
 expression_statement : SEMICOLON
 	{
-		$$ = string_to_char_array(";");
-		parserlog << "Line " << yylineno << ": expression_statement : SEMICOLON\n\n" << $$ << "\n\n";
+		$$.name = string_to_char_array(";");
+		parserlog << "Line " << yylineno << ": expression_statement : SEMICOLON\n\n" << $$.name << "\n\n";
 
 		//reset tvc
 		tvc = -1;
@@ -411,8 +417,8 @@ expression_statement : SEMICOLON
 	}			
 	| expression SEMICOLON
 	{
-		$$ = string_to_char_array(string($1.name) + ";");
-		parserlog << "Line " << yylineno << ": expression_statement : expression SEMICOLON\n\n" << $$ << "\n\n";
+		$$.name = string_to_char_array(string($1.name) + ";");
+		parserlog << "Line " << yylineno << ": expression_statement : expression SEMICOLON\n\n" << $$.name << "\n\n";
 		
 		//reset tvc
 		tvc = -1;
@@ -423,14 +429,14 @@ expression_statement : SEMICOLON
 		yyclearin;
 		yyerrok;
 
-		$$ = string_to_char_array(";");
+		$$.name = string_to_char_array(";");
 	}			
 	| expression error SEMICOLON
 	{
 		yyclearin;
 		yyerrok;
 		
-		$$ = string_to_char_array(string($1.name) + ";");
+		$$.name = string_to_char_array(string($1.name) + ";");
 	}
 	;
 	  
@@ -534,7 +540,7 @@ variable : ID
 			$$.var = string_to_char_array(getAsmVar($1->getSymbol_name(), $1->getVar_category()));
 			$$.type = string_to_char_array("ARRVAR");
 			$$.index = $3.var;
-			$$.index_type = $3.type;
+			//$$.index_type = $3.type;
 		}
 	}
 	 ;
@@ -918,6 +924,8 @@ unary_expression : ADDOP unary_expression
 
 			parserlog << "Line " << yylineno << ": unary_expression : ADDOP unary_expression\n\n" << $$.name << "\n\n";
 
+			string CUR_CODE = "";
+
 			if($1->getSymbol_name() == "-")
 			{
 				if(string($2.type) == "CONST")
@@ -930,7 +938,7 @@ unary_expression : ADDOP unary_expression
 
 				else if(string($2.type) == "TEMP")
 				{
-					CODE = CODE + "\tNEG " + $2.var + "\n";	//negate the value
+					CUR_CODE = CUR_CODE + "\tNEG " + $2.var + "\n";	//negate the value
 
 					$$.var = string_to_char_array(string($2.var));
 					$$.type = string_to_char_array("TEMP");
@@ -941,39 +949,35 @@ unary_expression : ADDOP unary_expression
 					inc_tvc();	//need new temp var to store this expression
 					string temp = "t" + to_string(tvc);
 
-					CODE = CODE + "\t" + "PUSH AX\n";	//saving the register in the stack
 					//since mem to mem operation is illegal, store the variable in register AX first, then move it to temp var
-					CODE = CODE + "\tMOV AX, " + string($2.var) + "\n" + "\tMOV " + temp + ", AX\n";
-					CODE = CODE + "\tNEG " + temp + "\n";	//negate the value
-					CODE = CODE + "\tPOP AX\n";	//restore register AX
+					CUR_CODE = CUR_CODE + "\tMOV AX, " + string($2.var) + "\n" + "\tMOV " + temp + ", AX\n";
+					CUR_CODE = CUR_CODE + "\tNEG " + temp + "\n";	//negate the value
 
 					$$.var = string_to_char_array(temp);
 					$$.type = string_to_char_array("TEMP");
 				}
 
+				/*	since we replace a[n] with a temporary vairable, this case is no longer needed
 				else if(string($2.type) == "ARRVAR")
 				{
 					inc_tvc();	//need new temp var to store this expression
 					string temp = "t" + to_string(tvc);
 
-					CODE = CODE + "\t" + "PUSH AX\n";	//saving the register AX in the stack
-					CODE = CODE + "\t" + "PUSH BX\n";	//saving the register BX in the stack, needed for indexing
 					//get the value at the given index
-					CODE = CODE + "\tMOV BX, " + string($2.index) + "\n";
-					CODE = CODE + "\tSAL BX, 1\n";		//we are using word arrays, each word takes 2 bytes
+					CUR_CODE = CUR_CODE + "\tMOV BX, " + string($2.index) + "\n";
+					CUR_CODE = CUR_CODE + "\tSAL BX, 1\n";		//we are using word arrays, each word takes 2 bytes
 					//since mem to mem operation is illegal, store the variable in register AX first, then move it to temp var
-					CODE = CODE + "\tMOV AX, " + string($2.var) + "[BX]\n" + "\tMOV " + temp + ", AX\n";
-					CODE = CODE + "\tNEG " + temp + "\n";	//negate the value
-					CODE = CODE + "\tPOP BX\n";	//restore register BX
-					CODE = CODE + "\tPOP AX\n";	//restore register AX
+					CUR_CODE = CUR_CODE + "\tMOV AX, " + string($2.var) + "[BX]\n" + "\tMOV " + temp + ", AX\n";
+					CUR_CODE = CUR_CODE + "\tNEG " + temp + "\n";	//negate the value
 
 					$$.var = string_to_char_array(temp);
 					$$.type = string_to_char_array("TEMP");
 					$$.index = string_to_char_array(string($2.index));
 					$$.index_type = string_to_char_array(string($2.index_type));
-				}
+				}*/
 			}
 
+			$$.code = string_to_char_array(CUR_CODE);
 		}  
 		 | NOT unary_expression 
 		{
@@ -1010,23 +1014,27 @@ factor : variable
 		$$.var = string_to_char_array(string($1.var));
 		$$.type = string_to_char_array(string($1.type));
 
+		string CUR_CODE = "";
+
 		//if the variable is variable of an array then put it in a temp var
 		if(string($1.type) == "ARRVAR")
 		{
 			inc_tvc();
 			string temp = "t" + to_string(tvc);
-			CODE = CODE + "\tPUSH AX\n\tPUSH BX\n" + "\tMOV BX, " + string($1.index) + "\n" + "\tSAL BX, 1\n";
-			CODE = CODE + "\tMOV AX, " + string($1.var) + "[BX]\n" + "\tMOV " + temp + ", AX\n";
-			CODE = CODE + "\tPOP BX\n\tPOP AX\n";
+
+			CUR_CODE = CUR_CODE + "\tMOV BX, " + string($1.index) + "\n" + "\tSAL BX, 1\n";
+			CUR_CODE = CUR_CODE + "\tMOV AX, " + string($1.var) + "[BX]\n" + "\tMOV " + temp + ", AX\n";
 		
 			$$.var = string_to_char_array(string(temp));
 			$$.type = string_to_char_array(string("TEMP"));
 		}
+
+		$$.code = string_to_char_array(CUR_CODE);
 	}
 	| ID LPAREN argument_list RPAREN
 	{
 		$$.symbolinfo = $1;
-		$$.name = string_to_char_array($1->getSymbol_name() + "(" + string($3) + ")");
+		$$.name = string_to_char_array($1->getSymbol_name() + "(" + string($3.name) + ")");
 
 		parserlog << "Line " << yylineno << ": factor : ID LPAREN argument_list RPAREN\n\n" << $$.name << "\n\n";
 
@@ -1170,9 +1178,11 @@ factor : variable
 		inc_tvc();
 		string temp = "t" + to_string(tvc);
 
+		string CUR_CODE = "";
+
 		if(string($1.type) == "VAR")
 		{
-			CODE += "\
+			CUR_CODE += "\
 	MOV AX, " + string($1.var) + "\n\
 	MOV " + temp + ", AX\n\
 	INC " + string($1.var) + "\n";
@@ -1180,7 +1190,7 @@ factor : variable
 
 		else if(string($1.type) == "ARRVAR")
 		{
-			CODE += "\
+			CUR_CODE += "\
 	MOV BX, " + string($1.index) + "\n\
 	SAL BX, 1\n\
 	MOV AX, " + string($1.var) + "[BX]\n\
@@ -1190,6 +1200,7 @@ factor : variable
 
 		$$.var = string_to_char_array(temp);
 		$$.type = string_to_char_array(string("TEMP"));
+		$$.code = string_to_char_array(CUR_CODE);
 	}
 	| variable DECOP 
 	{
@@ -1201,9 +1212,11 @@ factor : variable
 		inc_tvc();
 		string temp = "t" + to_string(tvc);
 
+		string CUR_CODE;
+
 		if(string($1.type) == "VAR")
 		{
-			CODE += "\
+			CUR_CODE = "\
 	MOV AX, " + string($1.var) + "\n\
 	MOV " + temp + ", AX\n\
 	DEC " + string($1.var) + "\n";
@@ -1211,7 +1224,7 @@ factor : variable
 
 		else if(string($1.type) == "ARRVAR")
 		{
-			CODE += "\
+			CUR_CODE = "\
 	MOV BX, " + string($1.index) + "\n\
 	SAL BX, 1\n\
 	MOV AX, " + string($1.var) + "[BX]\n\
@@ -1221,18 +1234,19 @@ factor : variable
 
 		$$.var = string_to_char_array(temp);
 		$$.type = string_to_char_array(string("TEMP"));
+		$$.code = string_to_char_array(CUR_CODE);
 	}
 	;
 	
 argument_list : arguments
 		{
-			$$ = string_to_char_array(string($1));
-			parserlog << "Line " << yylineno << ": argument_list : arguments\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name));
+			parserlog << "Line " << yylineno << ": argument_list : arguments\n\n" << $$.name << "\n\n";
 		}
 		|
 		{
-			$$ = string_to_char_array("");
-			parserlog << "Line " << yylineno << ": argument_list : \n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array("");
+			parserlog << "Line " << yylineno << ": argument_list : \n\n" << $$.name << "\n\n";
 
 			variables.clear();	//empty parameter list
 		}
@@ -1240,8 +1254,8 @@ argument_list : arguments
 	
 arguments : arguments COMMA logic_expression
 		{
-			$$ = string_to_char_array(string($1) + "," + string($3.name));
-			parserlog << "Line " << yylineno << ": arguments : arguments COMMA logic_expression\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name) + "," + string($3.name));
+			parserlog << "Line " << yylineno << ": arguments : arguments COMMA logic_expression\n\n" << $$.name << "\n\n";
 
 			//save the data type, we will need it in factor -> ID LPAREN argument_list RPAREN to compare function call
 			//with function definition
@@ -1252,8 +1266,8 @@ arguments : arguments COMMA logic_expression
 		}
 	      | logic_expression
 		{
-			$$ = string_to_char_array(string($1.name));
-			parserlog << "Line " << yylineno << ": arguments : logic_expression\n\n" << $$ << "\n\n";
+			$$.name = string_to_char_array(string($1.name));
+			parserlog << "Line " << yylineno << ": arguments : logic_expression\n\n" << $$.name << "\n\n";
 
 			variables.clear();	//empty the variables vector
 

@@ -72,9 +72,6 @@
 	MOV var_1_1_a, AX
 	POP AX
 
-	MOV AX, var_1_1_a
-	MOV t0, AX
-	INC var_1_1_a
 	PUSH AX
 	MOV AX, t0
 	MOV var_1_1_b, AX
@@ -103,11 +100,6 @@
 	POP BX
 	POP AX
 
-	MOV BX, 0
-	SAL BX, 1
-	MOV AX, arr_1_1_c[BX]
-	MOV t0, AX
-	INC arr_1_1_c[BX]
 	PUSH AX
 	PUSH BX
 	MOV BX, 1
@@ -117,33 +109,12 @@
 	POP BX
 	POP AX
 
-	MOV BX, 1
-	SAL BX, 1
-	MOV AX, arr_1_1_c[BX]
-	MOV t0, AX
-	INC arr_1_1_c[BX]
-	PUSH AX
-	PUSH BX
-	MOV BX, 0
-	SAL BX, 1
-	MOV AX, arr_1_1_c[BX]
-	MOV t1, AX
-	POP BX
-	POP AX
 	MOV AX, t1
 	IMUL t0
 	MOV t0, AX
 	MOV AX, var_1_1_a
 	IMUL t0
 	MOV t0, AX
-	PUSH AX
-	PUSH BX
-	MOV BX, 0
-	SAL BX, 1
-	MOV AX, arr_1_1_c[BX]
-	MOV t1, AX
-	POP BX
-	POP AX
 	PUSH AX
 	MOV AX, t1
 	SUB AX, 100

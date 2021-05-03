@@ -397,7 +397,7 @@ statement : var_declaration
 		$$.name = string_to_char_array(string($1.name));
 		parserlog << "Line " << yylineno << ": statement : expression_statement\n\n" << $$.name << "\n\n";
 
-		reset tvc
+		//reset tvc
 		tvc = -1;
 
 		$$.code = string_to_char_array(string($1.code));
@@ -411,6 +411,34 @@ statement : var_declaration
 	{
 		$$.name = string_to_char_array(string("for") + string("(") + string($3.name) + string($4.name) + string($5.name) + string(")") + string($7.name));
 		parserlog << "Line " << yylineno << ": statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement\n\n" << $$.name << "\n\n";
+
+		string forloop_label = newLabel();	//we will loop back here repeatedly
+		string end_forloop_label = newLabel();//we will jump to this label in case condition is failed
+
+		string CUR_CODE = "";
+
+		//$3.code is executed before the following instructions (initialization of for-loop)
+		//$4.code is executed afterwards (condition of for-loop)
+
+		if(string($4.type) == "CONST")	//Putting in a register to compare with 0
+			CUR_CODE += "\
+	MOV AX, " + string($4.var) + "\n\
+	CMP AX, 0\n";
+		else
+			CUR_CODE += "\
+	CMP " + string($4.var) + ", 0\n";
+
+		CUR_CODE += "\
+	JE " + end_forloop_label + "\n";	//if condition fails, then exit loop
+
+		//TODO:reset the counter for temp vars
+		tvc = -1;
+
+		//$7.code executes when the condition is satisfied, then jumps back to forloop_label
+		CUR_CODE += string($7.code) + string($5.code) + "\tJMP "+ forloop_label + "\n" + end_forloop_label + ":\n";
+		
+		//preceding the forloop_label loop with forloop_label (after $3.code or initialization block) so that we can jump to this label and re-enter the loop
+		$$.code = string_to_char_array(string($3.code) + forloop_label + string(":\n") + string($4.code) + CUR_CODE);
 	}
 	  | IF LPAREN expression RPAREN statement %prec LOWER_THAN_ELSE
 	{
@@ -420,7 +448,7 @@ statement : var_declaration
 		string exit_label = newLabel();		//we will jump to this label if the condition for "if" is failed
 		string CUR_CODE = "";
 
-		//$3.code is executed before the following instructions
+		//$3.code is executed before the following instructions (condition of if block)
 
 		if(string($3.type) == "CONST")	//Putting in a register to compare with 0
 			CUR_CODE += "\
@@ -450,7 +478,7 @@ statement : var_declaration
 		string end_if_label = newLabel();	//we will jump to this label after the code for "if" is executed
 		string CUR_CODE = "";
 
-		//$3.code is executed before the following instructions
+		//$3.code is executed before the following instructions (condition of if-else block)
 
 		if(string($3.type) == "CONST")	//Putting in a register to compare with 0
 			CUR_CODE += "\
@@ -484,7 +512,7 @@ statement : var_declaration
 
 		string CUR_CODE = "";
 
-		//$3.code is executed before the following instructions
+		//$3.code is executed before the following instructions (condition of while loop)
 
 		if(string($3.type) == "CONST")	//Putting in a register to compare with 0
 			CUR_CODE += "\

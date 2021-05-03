@@ -76,9 +76,9 @@ void yyerror(char *s)
 %type <symbolinfo> ID STRING ADDOP MULOP RELOP LOGICOP CONST_INT CONST_FLOAT CONST_CHAR
 %type <non_expression_structure> declaration_list type_specifier var_declaration unit program start func_declaration parameter_list
 
-%type <non_expression_structure> func_definition compound_statement statements statement expression_statement argument_list arguments
+%type <non_expression_structure> func_definition compound_statement statements statement argument_list arguments
 
-%type <expression_structure> expression logic_expression rel_expression term unary_expression factor simple_expression variable
+%type <expression_structure> expression logic_expression rel_expression term unary_expression factor simple_expression variable expression_statement
 
 //%error-verbose
 
@@ -397,6 +397,9 @@ statement : var_declaration
 		$$.name = string_to_char_array(string($1.name));
 		parserlog << "Line " << yylineno << ": statement : expression_statement\n\n" << $$.name << "\n\n";
 
+		reset tvc
+		tvc = -1;
+
 		$$.code = string_to_char_array(string($1.code));
 	}
 	  | compound_statement
@@ -527,17 +530,26 @@ expression_statement : SEMICOLON
 		$$.name = string_to_char_array(";");
 		parserlog << "Line " << yylineno << ": expression_statement : SEMICOLON\n\n" << $$.name << "\n\n";
 
-		//reset tvc
-		tvc = -1;
-		$$.code = string_to_char_array("");
+		//necessary in case of "for" loop, if expression for the condition is omitted, then the loop keeps iterating i.e.
+		//the condition is set to 1 (true)
+		inc_tvc();
+		string temp = "t" + to_string(tvc);
+
+		string CUR_CODE = "\
+	MOV " + temp + ", 1\n";
+
+		$$.var = string_to_char_array(temp);
+		$$.type = string_to_char_array("TEMP");
+		$$.code = string_to_char_array(CUR_CODE);
 	}			
 	| expression SEMICOLON
 	{
 		$$.name = string_to_char_array(string($1.name) + ";");
 		parserlog << "Line " << yylineno << ": expression_statement : expression SEMICOLON\n\n" << $$.name << "\n\n";
 		
-		//reset tvc
-		tvc = -1;
+		//necessary in case of "for" loop
+		$$.var = string_to_char_array(string($1.var));
+		$$.type = string_to_char_array(string($1.type));
 		$$.code = string_to_char_array("\t;" + string($1.name) + "\n" + string($1.code) + "\n");
 	}
 	| error SEMICOLON

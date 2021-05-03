@@ -147,6 +147,18 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {match_function
 			parserlog << "Line " << yylineno << ": func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement\n\n" << $$.name << "\n\n";
 
 			//match_function_definition_and_declaration(string($1.name), $2->getSymbol_name());
+
+			if($2->getSymbol_name() == "main")
+			{
+				$$.code = string_to_char_array("\
+PROC MAIN\n\
+	MOV AX, @DATA\n\
+	MOV DS, AX\n\n" + string($7.code) + "\
+	MOV AH, 4CH\n\
+	INT 21H\n");
+
+				CODE += string($$.code);
+			}
 		}
 		| type_specifier ID LPAREN RPAREN {match_function_definition_and_declaration(string($1.name), $2->getSymbol_name());} compound_statement
 		{
@@ -154,6 +166,20 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {match_function
 			parserlog << "Line " << yylineno << ": func_definition : type_specifier ID LPAREN RPAREN compound_statement\n\n" << $$.name << "\n\n";
 
 			//match_function_definition_and_declaration(string($1.name), $2->getSymbol_name());
+
+			if($2->getSymbol_name() == "main")
+			{
+				$$.code = string_to_char_array("\
+PROC MAIN\n\
+	MOV AX, @DATA\n\
+	MOV DS, AX\n\n" + string($6.code) + "\
+	MOV AH, 4CH\n\
+	INT 21H\n\
+MAIN ENDP\n\
+	END MAIN");
+
+				CODE += string($$.code);
+			}
 		}
  		;
 
@@ -239,6 +265,8 @@ compound_statement : LCURL {Enter_scope();} statements RCURL
 				parserlog << "Line " << yylineno << ": compound_statement : LCURL statements RCURL\n\n" << $$.name << "\n\n";
 
 				Exit_scope();
+
+				$$.code = string_to_char_array(string($3.code));
 			}
  		    | LCURL {Enter_scope();} RCURL
 			{
@@ -246,6 +274,7 @@ compound_statement : LCURL {Enter_scope();} statements RCURL
 				parserlog << "Line " << yylineno << ": compound_statement : LCURL RCURL\n\n" << $$.name << "\n\n";
 
 				Exit_scope();
+				$$.code = string_to_char_array("");
 			}
  		    ;
  		    
@@ -344,11 +373,15 @@ statements : statement
 		{
 			$$.name = string_to_char_array(string($1.name));
 			parserlog << "Line " << yylineno << ": statements : statement\n\n" << $$.name << "\n\n";
+
+			$$.code = string_to_char_array(string($1.code));
 		}
 	   | statements statement
 		{
 			$$.name = string_to_char_array(string($1.name) + "\n" + string($2.name));
 			parserlog << "Line " << yylineno << ": statements : statements statement\n\n" << $$.name << "\n\n";
+
+			$$.code = string_to_char_array(string($1.code) + string($2.code));
 		}
 	   ;
 	   
@@ -356,11 +389,15 @@ statement : var_declaration
 	{
 		$$.name = string_to_char_array(string($1.name));
 		parserlog << "Line " << yylineno << ": statement : var_declaration\n\n" << $$.name << "\n\n";
+
+		$$.code = string_to_char_array("");
 	}
 	  | expression_statement
 	{
 		$$.name = string_to_char_array(string($1.name));
 		parserlog << "Line " << yylineno << ": statement : expression_statement\n\n" << $$.name << "\n\n";
+
+		$$.code = string_to_char_array(string($1.code));
 	}
 	  | compound_statement
 	{
@@ -413,7 +450,7 @@ expression_statement : SEMICOLON
 
 		//reset tvc
 		tvc = -1;
-		CODE += "\n";
+		$$.code = string_to_char_array("");
 	}			
 	| expression SEMICOLON
 	{
@@ -422,7 +459,7 @@ expression_statement : SEMICOLON
 		
 		//reset tvc
 		tvc = -1;
-		CODE += "\n";
+		$$.code = string_to_char_array("\t;" + string($1.name) + "\n" + string($1.code) + "\n");
 	}
 	| error SEMICOLON
 	{
@@ -554,6 +591,7 @@ expression : logic_expression
 
 			$$.var = string_to_char_array(string($1.var));
 			$$.type = string_to_char_array(string($1.type));
+			$$.code = string_to_char_array(string($1.code));
 		}	
 	   | variable ASSIGNOP logic_expression
 		{
@@ -598,21 +636,21 @@ expression : logic_expression
 				}
 			}
 
-			//cout << "\n\t" << string($1.var) << "\t" << string($1.var)
+			string CUR_CODE = "";
 
 			if(string($1.type) == "VAR")
 			{
 				if(string($3.type) == "CONST")
 				{
-					CODE = CODE + "\tMOV " + $1.var + ", " + $3.var + "\n";
+					CUR_CODE += "\tMOV " + string($1.var) + ", " + string($3.var) + "\n";
 				}
 
 				else if(string($3.type) == "VAR" || string($3.type) == "TEMP")
 				{
-					CODE = CODE + "\
+					CUR_CODE += "\
 	PUSH AX\n\
-	MOV AX, " + $3.var + "\n\
-	MOV " + $1.var + ", AX\n\
+	MOV AX, " + string($3.var) + "\n\
+	MOV " + string($1.var) + ", AX\n\
 	POP AX\n";
 				}
 
@@ -624,23 +662,23 @@ expression : logic_expression
 			{
 				if(string($3.type) == "CONST")
 				{
-					CODE = CODE + "\
+					CUR_CODE += "\
 	PUSH BX\n\
-	MOV BX, " + $1.index + "\n\
+	MOV BX, " + string($1.index) + "\n\
 	SAL BX, 1\n\
-	MOV " + $1.var + "[BX], " + $3.var + "\n\
+	MOV " + string($1.var) + "[BX], " + string($3.var) + "\n\
 	POP BX\n";
 				}
 
 				else if(string($3.type) == "VAR" || string($3.type) == "TEMP")
 				{
-					CODE = CODE + "\
+					CUR_CODE += "\
 	PUSH AX\n\
 	PUSH BX\n\
-	MOV BX, " + $1.index + "\n\
+	MOV BX, " + string($1.index) + "\n\
 	SAL BX, 1\n\
-	MOV AX, " + $3.var + "\n\
-	MOV " + $1.var + "[BX], AX\n\
+	MOV AX, " + string($3.var) + "\n\
+	MOV " + string($1.var) + "[BX], AX\n\
 	POP BX\n\
 	POP AX\n";
 				}
@@ -653,6 +691,8 @@ expression : logic_expression
 			{
 				tvc--;
 			}
+
+			$$.code = string_to_char_array(string($3.code) + CUR_CODE);
 		} 	
 	   ;
 			
@@ -665,6 +705,7 @@ logic_expression : rel_expression
 
 			$$.var = string_to_char_array(string($1.var));
 			$$.type = string_to_char_array(string($1.type));
+			$$.code = string_to_char_array(string($1.code));
 		}
 		 | rel_expression LOGICOP rel_expression
 		{
@@ -694,6 +735,7 @@ rel_expression : simple_expression
 
 			$$.var = string_to_char_array(string($1.var));
 			$$.type = string_to_char_array(string($1.type));
+			$$.code = string_to_char_array(string($1.code));
 		}
 		| simple_expression RELOP simple_expression
 		{
@@ -723,6 +765,7 @@ simple_expression : term
 
 			$$.var = string_to_char_array(string($1.var));
 			$$.type = string_to_char_array(string($1.type));
+			$$.code = string_to_char_array(string($1.code));
 		}
 		  | simple_expression ADDOP term
 		{
@@ -750,16 +793,18 @@ simple_expression : term
 				$$.symbolinfo = $3.symbolinfo;
 			}
 
-			CODE = CODE + "\
+			string CUR_CODE = "";
+
+			CUR_CODE += "\
 	PUSH AX\n\
-	MOV AX, " + $1.var + "\n";
+	MOV AX, " + string($1.var) + "\n";
 
 			if($2->getSymbol_name() == "+")
-				CODE = CODE + "\
-	ADD AX, " + $3.var + "\n";
+				CUR_CODE += "\
+	ADD AX, " + string($3.var) + "\n";
 			else if($2->getSymbol_name() == "-")
-				CODE = CODE + "\
-	SUB AX, " + $3.var + "\n";
+				CUR_CODE += "\
+	SUB AX, " + string($3.var) + "\n";
 
 			string temp;
 			
@@ -782,12 +827,13 @@ simple_expression : term
 				temp = string($3.var);
 			}
 	
-			CODE = CODE + "\
+			CUR_CODE += "\
 	MOV " + temp + ", AX\n\
 	POP AX\n";
 
 			$$.var = string_to_char_array(string(temp));
 			$$.type = string_to_char_array(string("TEMP"));
+			$$.code = string_to_char_array(string($1.code) + string($3.code) + CUR_CODE);
 		}
 		  ;
 					
@@ -800,6 +846,7 @@ term :	unary_expression
 
 			$$.var = string_to_char_array(string($1.var));
 			$$.type = string_to_char_array(string($1.type));
+			$$.code = string_to_char_array(string($1.code));
 		}
      |  term MULOP unary_expression
 		{
@@ -846,26 +893,28 @@ term :	unary_expression
 				}
 			}
 
+			string CUR_CODE = "";
+
 			if($2->getSymbol_name() == "*")
 			{
 				//Since the operand of IMUL/IDIV cannot be constant; we keep the variable as the operand of IMUL/IDIV
 				if(string($1.type) == "VAR" || string($1.type) == "TEMP")
 				{
-					CODE += "\
+					CUR_CODE += "\
 	MOV AX, " + string($3.var) + "\n\
 	IMUL " + string($1.var) + "\n";
 				}
 
 				else if(string($3.type) == "VAR" || string($3.type) == "TEMP")
 				{
-					CODE += "\
+					CUR_CODE += "\
 	MOV AX, " + string($1.var) + "\n\
 	IMUL " + string($3.var) + "\n";
 				}
 
 				else if(string($3.type) == "CONST" || string($3.type) == "CONST")	//need two registers in this case
 				{
-					CODE += "\
+					CUR_CODE += "\
 	MOV AX, " + string($1.var) + "\n\
 	MOV BX, " + string($3.var) + "\n\
 	IMUL BX" + "\n";
@@ -875,13 +924,13 @@ term :	unary_expression
 			else
 			//we cannot switch the operators during division, so keeping the first operator in AX
 			{
-				CODE += "\
+				CUR_CODE += "\
 	MOV AX, " + string($1.var) + "\n\
 	CWD\n";
 				if(string($3.type) == "VAR" || string($3.type) == "TEMP")	//can directly IDIV, no register is needed
-					CODE += "\tIDIV " + string($3.var) + "\n";
+					CUR_CODE += "\tIDIV " + string($3.var) + "\n";
 				else
-					CODE += "\
+					CUR_CODE += "\
 	MOV BX, " + string($3.var) + "\n\
 	IDIV BX\n";
 			}
@@ -908,12 +957,13 @@ term :	unary_expression
 			}
 
 			if($2->getSymbol_name() == "%")		//DX keeps the remainder after division
-				CODE += "\tMOV " + temp + ", DX\n";
+				CUR_CODE += "\tMOV " + temp + ", DX\n";
 			else
-				CODE += "\tMOV " + temp + ", AX\n";
+				CUR_CODE += "\tMOV " + temp + ", AX\n";
 
 			$$.var = string_to_char_array(string(temp));
 			$$.type = string_to_char_array(string("TEMP"));
+			$$.code = string_to_char_array(string($1.code) + string($3.code) + CUR_CODE);
 		}
      ;
 
@@ -977,7 +1027,7 @@ unary_expression : ADDOP unary_expression
 				}*/
 			}
 
-			$$.code = string_to_char_array(CUR_CODE);
+			$$.code = string_to_char_array(string($2.code) + CUR_CODE);
 		}  
 		 | NOT unary_expression 
 		{
@@ -995,6 +1045,7 @@ unary_expression : ADDOP unary_expression
 
 			$$.var = string_to_char_array(string($1.var));
 			$$.type = string_to_char_array(string($1.type));
+			$$.code = string_to_char_array(string($1.code));
 
 			/*if(string($1.type) == "ARRVAR")
 			{
@@ -1150,6 +1201,7 @@ factor : variable
 
 		$$.var = string_to_char_array(string($2.var));
 		$$.type = string_to_char_array(string($2.type));
+		$$.code = string_to_char_array(string($2.code));
 	}
 	| CONST_INT
 	{
@@ -1160,6 +1212,7 @@ factor : variable
 
 		$$.var = string_to_char_array($1->getSymbol_name());
 		$$.type = string_to_char_array("CONST");
+		$$.code = string_to_char_array("");
 	}
 	| CONST_FLOAT
 	{

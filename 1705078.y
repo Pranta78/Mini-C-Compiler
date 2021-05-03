@@ -413,16 +413,95 @@ statement : var_declaration
 	{
 		$$.name = string_to_char_array(string("if ") + string("(") + string($3.name) + string(")") + string($5.name));
 		parserlog << "Line " << yylineno << ": statement : IF LPAREN expression RPAREN statement\n\n" << $$.name << "\n\n";
+
+		string exit_label = newLabel();		//we will jump to this label if the condition for "if" is failed
+		string CUR_CODE = "";
+
+		//$3.code is executed before the following instructions
+
+		if(string($3.type) == "CONST")	//Putting in a register to compare with 0
+			CUR_CODE += "\
+	MOV AX, " + string($3.var) + "\n\
+	CMP AX, 0\n";
+		else
+			CUR_CODE += "\
+	CMP " + string($3.var) + ", 0\n";
+
+		CUR_CODE += "\
+	JE " + exit_label + "\n";	//if condition fails
+
+		//TODO:reset the counter for temp vars
+		tvc = -1;
+
+		//$5.code executes when the condition is satisfied, otherwise jumps to the exit_label
+		CUR_CODE += string($5.code) + exit_label + ":\n";
+
+		$$.code = string_to_char_array(string($3.code) + CUR_CODE);
 	}
 	  | IF LPAREN expression RPAREN statement ELSE statement
 	{
 		$$.name = string_to_char_array(string("if ") + string("(") + string($3.name) + string(")") + string($5.name) + "\nelse\n" + string($7.name));
 		parserlog << "Line " << yylineno << ": statement : IF LPAREN expression RPAREN statement ELSE statement\n\n" << $$.name << "\n\n";
+
+		string else_label = newLabel();		//we will jump to this label if the condition for "if" is failed
+		string end_if_label = newLabel();	//we will jump to this label after the code for "if" is executed
+		string CUR_CODE = "";
+
+		//$3.code is executed before the following instructions
+
+		if(string($3.type) == "CONST")	//Putting in a register to compare with 0
+			CUR_CODE += "\
+	MOV AX, " + string($3.var) + "\n\
+	CMP AX, 0\n";
+		else
+			CUR_CODE += "\
+	CMP " + string($3.var) + ", 0\n";
+
+		CUR_CODE += "\
+	JE " + else_label + "\n";	//if condition fails
+
+		//TODO:reset the counter for temp vars
+		tvc = -1;
+
+		//$5.code executes when the condition is satisfied, then it jumps to the end of if-else block (end_if_label)
+		CUR_CODE += string($5.code) + "\tJMP " + end_if_label + "\n";
+		//$7.code executes when the condition is failed
+		CUR_CODE += else_label + ":\n" + string($7.code) + end_if_label + ":\n";
+		
+		//$3.code executes before the if-else block, then CUR_CODE is executed
+		$$.code = string_to_char_array(string($3.code) + CUR_CODE);
 	}
 	  | WHILE LPAREN expression RPAREN statement
 	{
 		$$.name = string_to_char_array(string("while ") + string("(") + string($3.name) + string(")") + string($5.name));
 		parserlog << "Line " << yylineno << ": statement : WHILE LPAREN expression RPAREN statement\n\n" << $$.name << "\n\n";
+
+		string while_label = newLabel();	//we will loop back here repeatedly
+		string end_while_label = newLabel();//we will jump to this label in case condition is failed
+
+		string CUR_CODE = "";
+
+		//$3.code is executed before the following instructions
+
+		if(string($3.type) == "CONST")	//Putting in a register to compare with 0
+			CUR_CODE += "\
+	MOV AX, " + string($3.var) + "\n\
+	CMP AX, 0\n";
+		else
+			CUR_CODE += "\
+	CMP " + string($3.var) + ", 0\n";
+
+		CUR_CODE += "\
+	JE " + end_while_label + "\n";	//if condition fails, then exit loop
+
+		//TODO:reset the counter for temp vars
+		tvc = -1;
+
+		//$5.code executes when the condition is satisfied, then jumps back to while_label
+		CUR_CODE += string($5.code) + "\tJMP "+ while_label + "\n" + end_while_label + ":\n";
+		
+		//preceding the while loop with while_label so that we can jump to this label and re-enter the loop
+		$$.code = string_to_char_array(while_label + string(":\n") + string($3.code) + CUR_CODE);
 	}
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON
 	{
@@ -1458,6 +1537,7 @@ int main(int argc,char *argv[])
 
 	table->Print_All_ScopeTable();
 
+	DeclareVariablesAsm(true);	//declare global variables
 	FinalizeAssemblyCode();
 
 	parserlog << "Total Lines: " << yylineno-1 << "\nTotal Errors: " << parser_error_count;

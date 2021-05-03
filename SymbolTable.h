@@ -20,6 +20,7 @@ public:
 	bool Insert(std::string symbol_name, std::string symbol_type, std::string symbol_var_type, std::vector<SymbolInfo*> parameter_list, bool defined);
 	bool Remove(std::string symbol_name);
 	SymbolInfo* Lookup(std::string symbol_name);
+	std::string LookupScopeID(std::string symbol_name);	//returns the scope id of the scopeTable of a given variable
 
 	std::string getCurrentScopeTableID();
 	SymbolInfo** getCurrentScopeTableArray_symbolinfo();
@@ -163,6 +164,30 @@ SymbolInfo* SymbolTable::Lookup(std::string symbol_name)
 	//std::cout << "Found no result in any scope tables\n";
 	//std::cout << symbol_name << " not found\n";
 	return NULL;
+}
+
+std::string SymbolTable::LookupScopeID(std::string symbol_name)
+{
+	if(!current_scopeTable)
+	{
+		return NULL;
+	}
+
+	ScopeTable* iter_scopetable = current_scopeTable;
+
+	while(iter_scopetable)
+	{
+		SymbolInfo* search_result = iter_scopetable->Lookup(symbol_name);
+
+		if(search_result)
+		{
+			return iter_scopetable->getID();
+		}
+
+		iter_scopetable = iter_scopetable->getParentScope();
+	}
+
+	return "";
 }
 
 void SymbolTable::Print_Current_ScopeTable()

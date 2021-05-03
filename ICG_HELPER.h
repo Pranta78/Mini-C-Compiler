@@ -16,7 +16,8 @@ int lc = 0;		//label count, whenver a label is used, this variable is incremente
 string getAsmVar(string varName, string varCat="VARIABLE")  //returns the corresponding assembly variable in current scope
 {
     //get the id of the current scope table
-    string id = table->getCurrentScopeTableID();
+    //string id = table->getCurrentScopeTableID();
+	string id = table->LookupScopeID(varName);
 
     //replaces the dots in the id with underscore to make var name compatible
     for(int i=0; i<id.size(); i++)
@@ -36,7 +37,7 @@ string getAsmVar(char* varName)  //returns the corresponding assembly variable i
     return getAsmVar(string(varName));
 }
 
-void DeclareVariablesAsm()
+void DeclareVariablesAsm(bool declareTempVar = false)
 {
     //declares the variables in the current scope table in the DATA segment
     SymbolInfo** arr = table->getCurrentScopeTableArray_symbolinfo();
@@ -61,7 +62,7 @@ void DeclareVariablesAsm()
     }
 
 	//declares the temporary variables in the DATA segment, skips if no temporary variables were used
-	if(max_tvc != -1)
+	if(declareTempVar && max_tvc != -1)
 		for(int i=-1; i<max_tvc; i++)
 			DATA = DATA + "\t" + "t" + to_string(i+1) + "\tDW" + "\t?\n";
 }

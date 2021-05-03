@@ -6,200 +6,115 @@
 	var_1_1_c	DW	?
 	var_1_1_d	DW	?
 	var_1_1_e	DW	?
-	var_1_1_f	DW	?
+	var_1_a	DW	?
+	var_1_v	DW	?
 	t0	DW	?
 	t1	DW	?
+	t2	DW	?
+	t3	DW	?
 .CODE
 PROC MAIN
 	MOV AX, @DATA
 	MOV DS, AX
 
-	;a=2<3&&1<0
-	MOV AX, 2
-	CMP AX, 3
-	JNL L0
-	MOV t0, 1
-	JMP L1
+	;a=10
+	MOV var_1_1_a, 10
+
+	;b=0
+	MOV var_1_1_b, 0
+
+	;c=10
+	MOV var_1_1_c, 10
+
+	;d=0
+	MOV var_1_1_d, 0
+
+	;e=0
+	MOV var_1_1_e, 0
+
 L0:
-	AND t0, 0
-L1:
-	MOV AX, 1
-	CMP AX, 0
-	JNL L2
-	MOV t1, 1
-	JMP L3
-L2:
-	AND t1, 0
-L3:
+	MOV AX, var_1_1_a
+	MOV t0, AX
+	DEC var_1_1_a
 	CMP t0, 0
-	JE L4
-	CMP t1, 0
-	JE L4
-	MOV t0, 1
+	JE L1
+	;b++
+	MOV AX, var_1_1_b
+	MOV t1, AX
+	INC var_1_1_b
+
+	;c--
+	MOV AX, var_1_1_c
+	MOV t0, AX
+	DEC var_1_1_c
+
+	JMP L0
+L1:
+	;a=10
+	MOV var_1_1_a, 10
+
+L2:
+	MOV AX, var_1_1_a
+	MOV t0, AX
+	DEC var_1_1_a
+	CMP t0, 0
+	JE L3
+	;d++
+	MOV AX, var_1_1_d
+	MOV t1, AX
+	INC var_1_1_d
+
+	JMP L2
+L3:
+	;a=10
+	MOV var_1_1_a, 10
+
+L11:
+	MOV AX, var_1_1_a
+	MOV t0, AX
+	DEC var_1_1_a
+	CMP t0, 0
+	JE L12
+	MOV AX, var_1_1_a
+	CMP AX, 5
+	JNG L4
+	MOV t1, 1
 	JMP L5
 L4:
-	AND t0, 0
-L5:
-	PUSH AX
-	MOV AX, t0
-	MOV var_1_1_a, AX
-	POP AX
-
-	;b=a<=1&&a>1
-	MOV AX, var_1_1_a
-	CMP AX, 1
-	JNLE L6
-	MOV t0, 1
-	JMP L7
-L6:
-	AND t0, 0
-L7:
-	MOV AX, var_1_1_a
-	CMP AX, 1
-	JNG L8
-	MOV t1, 1
-	JMP L9
-L8:
 	AND t1, 0
-L9:
-	CMP t0, 0
-	JE L10
+L5:
 	CMP t1, 0
 	JE L10
-	MOV t0, 1
-	JMP L11
-L10:
-	AND t0, 0
-L11:
+	MOV AX, var_1_1_b
+	CMP AX, 0
+	JNG L6
+	MOV t2, 1
+	JMP L7
+L6:
+	AND t2, 0
+L7:
+	CMP t2, 0
+	JE L8
+	;b=b-4
 	PUSH AX
-	MOV AX, t0
+	MOV AX, var_1_1_b
+	SUB AX, 4
+	MOV t3, AX
+	POP AX
+	PUSH AX
+	MOV AX, t3
 	MOV var_1_1_b, AX
 	POP AX
 
-	;c=b>2||2>b
-	MOV AX, var_1_1_b
-	CMP AX, 2
-	JNG L12
-	MOV t0, 1
-	JMP L13
+	JMP L9
+L8:
+	;e=1
+	MOV var_1_1_e, 1
+
+L9:
+L10:
+	JMP L11
 L12:
-	AND t0, 0
-L13:
-	MOV AX, 2
-	CMP AX, var_1_1_b
-	JNG L14
-	MOV t1, 1
-	JMP L15
-L14:
-	AND t1, 0
-L15:
-	CMP t0, 0
-	JNE L16
-	CMP t1, 0
-	JNE L16
-	AND t0, 0
-	JMP L17
-L16:
-	MOV t0, 1
-L17:
-	PUSH AX
-	MOV AX, t0
-	MOV var_1_1_c, AX
-	POP AX
-
-	;d=4>=4&&4<4
-	MOV AX, 4
-	CMP AX, 4
-	JNGE L18
-	MOV t0, 1
-	JMP L19
-L18:
-	AND t0, 0
-L19:
-	MOV AX, 4
-	CMP AX, 4
-	JNL L20
-	MOV t1, 1
-	JMP L21
-L20:
-	AND t1, 0
-L21:
-	CMP t0, 0
-	JE L22
-	CMP t1, 0
-	JE L22
-	MOV t0, 1
-	JMP L23
-L22:
-	AND t0, 0
-L23:
-	PUSH AX
-	MOV AX, t0
-	MOV var_1_1_d, AX
-	POP AX
-
-	;e=d==0||3==3
-	MOV AX, var_1_1_d
-	CMP AX, 0
-	JNE L24
-	MOV t0, 1
-	JMP L25
-L24:
-	AND t0, 0
-L25:
-	MOV AX, 3
-	CMP AX, 3
-	JNE L26
-	MOV t1, 1
-	JMP L27
-L26:
-	AND t1, 0
-L27:
-	CMP t0, 0
-	JNE L28
-	CMP t1, 0
-	JNE L28
-	AND t0, 0
-	JMP L29
-L28:
-	MOV t0, 1
-L29:
-	PUSH AX
-	MOV AX, t0
-	MOV var_1_1_e, AX
-	POP AX
-
-	;f=d!=0&&1==3
-	MOV AX, var_1_1_d
-	CMP AX, 0
-	JE L30
-	MOV t0, 1
-	JMP L31
-L30:
-	AND t0, 0
-L31:
-	MOV AX, 1
-	CMP AX, 3
-	JNE L32
-	MOV t1, 1
-	JMP L33
-L32:
-	AND t1, 0
-L33:
-	CMP t0, 0
-	JE L34
-	CMP t1, 0
-	JE L34
-	MOV t0, 1
-	JMP L35
-L34:
-	AND t0, 0
-L35:
-	PUSH AX
-	MOV AX, t0
-	MOV var_1_1_f, AX
-	POP AX
-
 	MOV AH, 4CH
 	INT 21H
 MAIN ENDP

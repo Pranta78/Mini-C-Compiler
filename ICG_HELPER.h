@@ -11,7 +11,7 @@ string CODE = ".CODE\n";
 int tvc = -1;	//current temporary variable count, temporary variables temporarily store values in expression
 int max_tvc = tvc;		//total amount of temporary variables - 1, needed to declare all temporary variables in DATA segment
 
-int lc = -1;		//label count, whenver a label is used, this variable is incremented
+int lc = 0;		//label count, whenver a label is used, this variable is incremented
 
 string getAsmVar(string varName, string varCat="VARIABLE")  //returns the corresponding assembly variable in current scope
 {
@@ -75,6 +75,49 @@ void inc_tvc()
 {
 	tvc++;
 	max_tvc = max(tvc, max_tvc);
+}
+
+string getConditionalJumpCommand(string relop)
+{
+	if(relop == "<=")
+		return "JNLE";
+
+	if(relop == "<")
+		return "JNL";
+
+	if(relop == ">=")
+		return "JNGE";
+
+	if(relop == ">")
+		return "JNG";
+
+	if(relop == "==")
+		return "JNE";
+
+	if(relop == "!=")
+		return "JE";
+}
+
+string getTemp(char* type1, char* type2, char* var1, char* var2)
+{
+	if(string(type1) == "TEMP" && string(type2) == "TEMP")
+	{
+		tvc--;
+		return "t" + to_string(tvc);
+	}
+	else if(string(type1) != "TEMP" && string(type2) != "TEMP")
+	{
+		inc_tvc();
+		return "t" + to_string(tvc);
+	}
+	else if(string(type1) == "TEMP")
+	{
+		return string(var1);
+	}
+	else if(string(type2) == "TEMP")
+	{
+		return string(var2);
+	}
 }
 
 void FinalizeAssemblyCode()

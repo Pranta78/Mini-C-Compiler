@@ -723,6 +723,89 @@ logic_expression : rel_expression
 				errorlog << "Error at line " << yylineno << ": Void return type cannot be part of an expression." << "\n\n";
 				parser_error_count++;
 			}
+
+			string CUR_CODE = "";
+			string temp;
+
+			if($2->getSymbol_name() == "&&")	//AND Condition
+			{
+				string false_label = newLabel();
+				string exit_label = newLabel();
+
+				if(string($1.type) == "CONST")	//Putting in a register to compare with 0
+					CUR_CODE += "\
+	MOV AX, " + string($1.var) + "\n\
+	CMP AX, 0\n";
+				else
+					CUR_CODE += "\
+	CMP " + string($1.var) + ", 0\n";
+
+				CUR_CODE += "\
+	JE " + false_label + "\n";
+
+				if(string($3.type) == "CONST")	//Putting in a register to compare with 0
+					CUR_CODE += "\
+	MOV AX, " + string($3.var) + "\n\
+	CMP AX, 0\n";
+				else
+					CUR_CODE += "\
+	CMP " + string($3.var) + ", 0\n";
+
+				CUR_CODE += "\
+	JE " + false_label + "\n";
+
+				//determine the temp var to put the result in
+				temp = getTemp($1.type, $3.type, $1.var, $3.var);
+
+				CUR_CODE += "\
+	MOV " + temp + ", 1\n\
+	JMP " + exit_label + "\n";	//condition was fulfilled
+
+				CUR_CODE += false_label + ":\n\
+	AND " + temp + ", 0\n" + exit_label + ":\n";	//condition was failed
+			}
+			
+			else	//OR Condition
+			{
+				string true_label = newLabel();
+				string exit_label = newLabel();
+
+				if(string($1.type) == "CONST")	//Putting in a register to compare with 0
+					CUR_CODE += "\
+	MOV AX, " + string($1.var) + "\n\
+	CMP AX, 0\n";
+				else
+					CUR_CODE += "\
+	CMP " + string($1.var) + ", 0\n";
+
+				CUR_CODE += "\
+	JNE " + true_label + "\n";
+
+				if(string($3.type) == "CONST")	//Putting in a register to compare with 0
+					CUR_CODE += "\
+	MOV AX, " + string($3.var) + "\n\
+	CMP AX, 0\n";
+				else
+					CUR_CODE += "\
+	CMP " + string($3.var) + ", 0\n";
+
+				CUR_CODE += "\
+	JNE " + true_label + "\n";
+
+				//determine the temp var to put the result in
+				temp = getTemp($1.type, $3.type, $1.var, $3.var);
+
+				CUR_CODE += "\
+	AND " + temp + ", 0\n\
+	JMP " + exit_label + "\n";	//condition was failed
+
+				CUR_CODE += true_label + ":\n\
+	MOV " + temp + ", 1\n" + exit_label + ":\n";	//condition was fulfilled
+			}
+
+			$$.var = string_to_char_array(temp);
+			$$.type = string_to_char_array("TEMP");
+			$$.code = string_to_char_array(string($1.code) + string($3.code) + CUR_CODE);
 		}
 		 ;
 			
@@ -753,6 +836,31 @@ rel_expression : simple_expression
 				errorlog << "Error at line " << yylineno << ": Void return type cannot be part of an expression." << "\n\n";
 				parser_error_count++;
 			}
+
+			string false_label = newLabel();	//jumps to this label if condition is false
+			string exit_label = newLabel();		//jumps to this label to exit (to skip false_label)
+
+			string JUMP_COMMAND = getConditionalJumpCommand($2->getSymbol_name());	//Condition jump commands according to relop
+			
+			string CUR_CODE = "";
+
+			CUR_CODE += "\
+	MOV AX, " + string($1.var) + "\n\
+	CMP AX, " + string($3.var) + "\n" + "\t" + JUMP_COMMAND + " " + false_label + "\n";
+
+			//determine the temp var to put the result in
+			string temp = getTemp($1.type, $3.type, $1.var, $3.var);
+
+			CUR_CODE += "\
+	MOV " + temp + ", 1\n\
+	JMP " + exit_label + "\n";	//this code executes if condition is true, so setting the temp var to 1
+
+			CUR_CODE += false_label + ":\n\
+	AND " + temp + ", 0\n" + exit_label + ":\n";
+			
+			$$.var = string_to_char_array(temp);
+			$$.type = string_to_char_array("TEMP");
+			$$.code = string_to_char_array(string($1.code) + string($3.code) + CUR_CODE);
 		}
 		;
 				

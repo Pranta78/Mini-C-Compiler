@@ -3,7 +3,10 @@
 .DATA
 	var_1_1_a	DW	?
 	var_1_1_b	DW	?
-	arr_1_1_c	DW	20	DUP	(?)
+	var_1_1_c	DW	?
+	var_1_1_d	DW	?
+	var_1_1_e	DW	?
+	var_1_1_f	DW	?
 	t0	DW	?
 	t1	DW	?
 .CODE
@@ -11,191 +14,190 @@ PROC MAIN
 	MOV AX, @DATA
 	MOV DS, AX
 
-	;a=2+-3+-5+6*7+28/9+1*1*1*8
-	PUSH AX
+	;a=2<3&&1<0
 	MOV AX, 2
-	ADD AX, -3
-	MOV t0, AX
-	POP AX
-	PUSH AX
-	MOV AX, t0
-	ADD AX, -5
-	MOV t0, AX
-	POP AX
-	MOV AX, 6
-	MOV BX, 7
-	IMUL BX
-	MOV t1, AX
-	PUSH AX
-	MOV AX, t0
-	ADD AX, t1
-	MOV t0, AX
-	POP AX
-	MOV AX, 28
-	CWD
-	MOV BX, 9
-	IDIV BX
-	MOV t1, AX
-	PUSH AX
-	MOV AX, t0
-	ADD AX, t1
-	MOV t0, AX
-	POP AX
+	CMP AX, 3
+	JNL L0
+	MOV t0, 1
+	JMP L1
+L0:
+	AND t0, 0
+L1:
 	MOV AX, 1
-	MOV BX, 1
-	IMUL BX
-	MOV t1, AX
-	MOV AX, 1
-	IMUL t1
-	MOV t1, AX
-	MOV AX, 8
-	IMUL t1
-	MOV t1, AX
-	PUSH AX
-	MOV AX, t0
-	ADD AX, t1
-	MOV t0, AX
-	POP AX
+	CMP AX, 0
+	JNL L2
+	MOV t1, 1
+	JMP L3
+L2:
+	AND t1, 0
+L3:
+	CMP t0, 0
+	JE L4
+	CMP t1, 0
+	JE L4
+	MOV t0, 1
+	JMP L5
+L4:
+	AND t0, 0
+L5:
 	PUSH AX
 	MOV AX, t0
 	MOV var_1_1_a, AX
 	POP AX
 
-	;a=a+a+a
-	PUSH AX
+	;b=a<=1&&a>1
 	MOV AX, var_1_1_a
-	ADD AX, var_1_1_a
-	MOV t0, AX
-	POP AX
-	PUSH AX
-	MOV AX, t0
-	ADD AX, var_1_1_a
-	MOV t0, AX
-	POP AX
-	PUSH AX
-	MOV AX, t0
-	MOV var_1_1_a, AX
-	POP AX
-
-	;b=a++
+	CMP AX, 1
+	JNLE L6
+	MOV t0, 1
+	JMP L7
+L6:
+	AND t0, 0
+L7:
 	MOV AX, var_1_1_a
-	MOV t0, AX
-	INC var_1_1_a
+	CMP AX, 1
+	JNG L8
+	MOV t1, 1
+	JMP L9
+L8:
+	AND t1, 0
+L9:
+	CMP t0, 0
+	JE L10
+	CMP t1, 0
+	JE L10
+	MOV t0, 1
+	JMP L11
+L10:
+	AND t0, 0
+L11:
 	PUSH AX
 	MOV AX, t0
 	MOV var_1_1_b, AX
 	POP AX
 
-	;c[0]=b*a*1*1*1*1/300
-	MOV AX, var_1_1_a
-	IMUL var_1_1_b
-	MOV t0, AX
-	MOV AX, 1
-	IMUL t0
-	MOV t0, AX
-	MOV AX, 1
-	IMUL t0
-	MOV t0, AX
-	MOV AX, 1
-	IMUL t0
-	MOV t0, AX
-	MOV AX, 1
-	IMUL t0
-	MOV t0, AX
-	MOV AX, t0
-	CWD
-	MOV BX, 300
-	IDIV BX
-	MOV t0, AX
-	PUSH AX
-	PUSH BX
-	MOV BX, 0
-	SAL BX, 1
-	MOV AX, t0
-	MOV arr_1_1_c[BX], AX
-	POP BX
-	POP AX
-
-	;c[1]=c[0]++
-	MOV BX, 0
-	SAL BX, 1
-	MOV AX, arr_1_1_c[BX]
-	MOV t0, AX
-	INC arr_1_1_c[BX]
-	PUSH AX
-	PUSH BX
-	MOV BX, 1
-	SAL BX, 1
-	MOV AX, t0
-	MOV arr_1_1_c[BX], AX
-	POP BX
-	POP AX
-
-	;a=a/50
-	MOV AX, var_1_1_a
-	CWD
-	MOV BX, 50
-	IDIV BX
-	MOV t0, AX
-	PUSH AX
-	MOV AX, t0
-	MOV var_1_1_a, AX
-	POP AX
-
-	;b=b%50
+	;c=b>2||2>b
 	MOV AX, var_1_1_b
-	CWD
-	MOV BX, 50
-	IDIV BX
-	MOV t0, DX
+	CMP AX, 2
+	JNG L12
+	MOV t0, 1
+	JMP L13
+L12:
+	AND t0, 0
+L13:
+	MOV AX, 2
+	CMP AX, var_1_1_b
+	JNG L14
+	MOV t1, 1
+	JMP L15
+L14:
+	AND t1, 0
+L15:
+	CMP t0, 0
+	JNE L16
+	CMP t1, 0
+	JNE L16
+	AND t0, 0
+	JMP L17
+L16:
+	MOV t0, 1
+L17:
 	PUSH AX
 	MOV AX, t0
-	MOV var_1_1_b, AX
+	MOV var_1_1_c, AX
 	POP AX
 
-	;c[2]=c[1]--*(c[0]--)*a+b*a*2*1+5
-	MOV BX, 1
-	SAL BX, 1
-	MOV AX, arr_1_1_c[BX]
-	MOV t0, AX
-	DEC arr_1_1_c[BX]
-	MOV BX, 0
-	SAL BX, 1
-	MOV AX, arr_1_1_c[BX]
-	MOV t1, AX
-	DEC arr_1_1_c[BX]
-	MOV AX, t1
-	IMUL t0
-	MOV t0, AX
-	MOV AX, var_1_1_a
-	IMUL t0
-	MOV t0, AX
-	MOV AX, var_1_1_a
-	IMUL var_1_1_b
-	MOV t1, AX
-	MOV AX, 2
-	IMUL t1
-	MOV t1, AX
+	;d=4>=4&&4<4
+	MOV AX, 4
+	CMP AX, 4
+	JNGE L18
+	MOV t0, 1
+	JMP L19
+L18:
+	AND t0, 0
+L19:
+	MOV AX, 4
+	CMP AX, 4
+	JNL L20
+	MOV t1, 1
+	JMP L21
+L20:
+	AND t1, 0
+L21:
+	CMP t0, 0
+	JE L22
+	CMP t1, 0
+	JE L22
+	MOV t0, 1
+	JMP L23
+L22:
+	AND t0, 0
+L23:
+	PUSH AX
+	MOV AX, t0
+	MOV var_1_1_d, AX
+	POP AX
+
+	;e=d==0||3==3
+	MOV AX, var_1_1_d
+	CMP AX, 0
+	JNE L24
+	MOV t0, 1
+	JMP L25
+L24:
+	AND t0, 0
+L25:
+	MOV AX, 3
+	CMP AX, 3
+	JNE L26
+	MOV t1, 1
+	JMP L27
+L26:
+	AND t1, 0
+L27:
+	CMP t0, 0
+	JNE L28
+	CMP t1, 0
+	JNE L28
+	AND t0, 0
+	JMP L29
+L28:
+	MOV t0, 1
+L29:
+	PUSH AX
+	MOV AX, t0
+	MOV var_1_1_e, AX
+	POP AX
+
+	;f=d!=0&&1==3
+	MOV AX, var_1_1_d
+	CMP AX, 0
+	JE L30
+	MOV t0, 1
+	JMP L31
+L30:
+	AND t0, 0
+L31:
 	MOV AX, 1
-	IMUL t1
-	MOV t1, AX
+	CMP AX, 3
+	JNE L32
+	MOV t1, 1
+	JMP L33
+L32:
+	AND t1, 0
+L33:
+	CMP t0, 0
+	JE L34
+	CMP t1, 0
+	JE L34
+	MOV t0, 1
+	JMP L35
+L34:
+	AND t0, 0
+L35:
 	PUSH AX
 	MOV AX, t0
-	ADD AX, t1
-	MOV t0, AX
-	POP AX
-	PUSH AX
-	MOV AX, t0
-	ADD AX, 5
-	MOV t0, AX
-	POP AX
-	PUSH AX
-	PUSH BX
-	MOV BX, 2
-	SAL BX, 1
-	MOV AX, t0
-	MOV arr_1_1_c[BX], AX
-	POP BX
+	MOV var_1_1_f, AX
 	POP AX
 
 	MOV AH, 4CH

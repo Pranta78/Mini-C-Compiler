@@ -40,12 +40,11 @@ void yyerror(char *s)
 {
 	SymbolInfo* symbolinfo;
 	char* name;
-	char* code;				//assembly code, needed in function, loops and if-else
 
 	struct non_expression_struct
 	{
 		char* name;
-		char* code;			//assembly code, needed in function, loops and if-else
+		char* code;			//assembly code, needed in function, loops, if-else and procedures
 	}	non_expression_structure;
 
 	struct expression_struct
@@ -53,9 +52,9 @@ void yyerror(char *s)
 		SymbolInfo* symbolinfo;	//to store information about data type; for Semantic analysis
 		char* name;			//to print the code i.e. matched text
 		char* var;			//integer constant/variable/temporary variable holding the value of the expression
-		char* type;			//"VAR", "ARR", "CONST" or "ARRVAR"
+		char* type;			//"VAR", "ARR", "CONST" or "ARRVAR"(only in variable)
 		char* index;			//needed in arrays, stores the integer constant/variable/temporary variable holding the index of the array
-		char* code;		//assembly code, needed in function, loops and if-else
+		char* code;		//assembly code, needed in function, loops, if-else and procedures
 	}	expression_structure;
 }
 
@@ -89,6 +88,9 @@ start : program
 		$$.name = string_to_char_array(string($1.name));
 		parserlog << "Line " << yylineno-1 << ": start : program\n\n";
 		//parserlog << $$.name << "\n\n";
+
+		$$.code = string_to_char_array(string($1.code));
+		CODE += string($$.code);
 	}
 	;
 
@@ -96,11 +98,15 @@ program : program unit
 	{
 		$$.name = string_to_char_array(string($1.name) + "\n" + string($2.name));
 		parserlog << "Line " << yylineno << ": program : program unit\n\n" << $$.name << "\n\n";
+
+		$$.code = string_to_char_array(string($1.code) + string($2.code));
 	}
 	| unit
 	{
 		$$.name = string_to_char_array(string($1.name));
 		parserlog << "Line " << yylineno << ": program : unit\n\n" << $$.name << "\n\n";
+
+		$$.code = string_to_char_array(string($1.code));
 	}
 	;
 	
@@ -108,16 +114,22 @@ unit : var_declaration
 		{
 			$$.name = string_to_char_array(string($1.name));
 			parserlog << "Line " << yylineno << ": unit : var_declaration\n\n" << $$.name << "\n\n";
+
+			$$.code = string_to_char_array("");
 		}
 	| func_declaration
 		{
 			$$.name = string_to_char_array(string($1.name));
 			parserlog << "Line " << yylineno << ": unit : func_declaration\n\n" << $$.name << "\n\n";
+
+			$$.code = string_to_char_array("");
 		}
 	| func_definition
 		{
 			$$.name = string_to_char_array(string($1.name));
 			parserlog << "Line " << yylineno << ": unit : func_definition\n\n" << $$.name << "\n\n";
+
+			$$.code = string_to_char_array(string($1.code));
 		}
      ;
 
@@ -157,7 +169,7 @@ PROC MAIN\n\
 	MOV AH, 4CH\n\
 	INT 21H\n");
 
-				CODE += string($$.code);
+				//CODE += string($$.code);
 			}
 		}
 		| type_specifier ID LPAREN RPAREN {match_function_definition_and_declaration(string($1.name), $2->getSymbol_name());} compound_statement
@@ -178,7 +190,7 @@ PROC MAIN\n\
 MAIN ENDP\n\
 	END MAIN");
 
-				CODE += string($$.code);
+				//CODE += string($$.code);
 			}
 		}
  		;
@@ -1418,6 +1430,35 @@ factor : variable
 				}
 			}
 		}
+
+		if(s)	//get the corresponding Symbol Table entry of the function (ID)
+		{
+			//call the function, arguments are placed in stack (in $3.code)
+			string CUR_CODE = "";
+			string temp = "";
+
+			CUR_CODE += "\
+	CALL " + s->getSymbol_name() + "\n";
+
+			if(s->getVar_type() == "void")
+			{
+				//no need to save the return value in a temp var
+			}
+
+			else if(s->getVar_type() == "int")
+			{
+				//return value is stored in DX, move it to a temp var
+				inc_tvc();	//new temp var
+				temp = "t" + to_string(tvc);
+
+				CUR_CODE += "\
+	MOV " + temp + ", DX\n";
+			}
+
+			$$.var = string_to_char_array(temp);
+			$$.type = string_to_char_array("TEMP");
+			$$.code = string_to_char_array(string($3.code) + CUR_CODE);
+		}
 	}
 	| LPAREN expression RPAREN
 	{
@@ -1522,6 +1563,8 @@ argument_list : arguments
 		{
 			$$.name = string_to_char_array(string($1.name));
 			parserlog << "Line " << yylineno << ": argument_list : arguments\n\n" << $$.name << "\n\n";
+
+			$$.code = string_to_char_array(string($1.code));
 		}
 		|
 		{
@@ -1529,6 +1572,7 @@ argument_list : arguments
 			parserlog << "Line " << yylineno << ": argument_list : \n\n" << $$.name << "\n\n";
 
 			variables.clear();	//empty parameter list
+			$$.code = string_to_char_array("");
 		}
 		;
 	
@@ -1543,6 +1587,30 @@ arguments : arguments COMMA logic_expression
 				save_variable($3.symbolinfo, "ARRAY", $3.symbolinfo->getArray_length());
 			else
 				save_variable($3.symbolinfo, "VARIABLE");
+
+			string CUR_CODE = "";
+			
+			//push the arguments in stack
+			if(string($3.type) == "VAR" || string($3.type) == "TEMP")
+			{
+				CUR_CODE += "\
+	PUSH " + string($3.var) + "\n";
+			}
+
+			else if(string($3.type) == "CONST")	//cannot push constants directly so save it in a register first
+			{
+				CUR_CODE += "\
+	MOV AX, " + string($3.var) + "\n\
+	PUSH AX\n";
+			}
+
+			//if the logic_expression was in a temp var, then make it available to use
+			if(string($3.type) == "TEMP")
+				tvc--;
+
+			//$$.var = string_to_char_array(temp);
+			//$$.type = string_to_char_array(string("TEMP"));
+			$$.code = string_to_char_array(string($1.code) + ";argument: " + string($3.code) + "\n" + CUR_CODE);
 		}
 	      | logic_expression
 		{
@@ -1557,6 +1625,30 @@ arguments : arguments COMMA logic_expression
 				save_variable($1.symbolinfo, "ARRAY", $1.symbolinfo->getArray_length());
 			else
 				save_variable($1.symbolinfo, "VARIABLE");
+
+			string CUR_CODE = "";
+			
+			//push the arguments in stack
+			if(string($1.type) == "VAR" || string($1.type) == "TEMP")
+			{
+				CUR_CODE += "\
+	PUSH " + string($1.var) + "\n";
+			}
+
+			else if(string($1.type) == "CONST")	//cannot push constants directly so save it in a register first
+			{
+				CUR_CODE += "\
+	MOV AX, " + string($1.var) + "\n\
+	PUSH AX\n";
+			}
+
+			//if the logic_expression was in a temp var, then make it available to use
+			if(string($1.type) == "TEMP")
+				tvc--;
+
+			//$$.var = string_to_char_array(temp);
+			//$$.type = string_to_char_array(string("TEMP"));
+			$$.code = string_to_char_array(";argument: " + string($1.code) + "\n" + CUR_CODE);
 		}
 	      ;
 

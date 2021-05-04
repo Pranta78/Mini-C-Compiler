@@ -13,6 +13,9 @@ int max_tvc = tvc;		//total amount of temporary variables - 1, needed to declare
 
 int lc = 0;		//label count, whenver a label is used, this variable is incremented
 
+string current_function = "";	//holds the name of the current function, necessary for procedures, "" means global scope
+int ret_n = 0;		//holds the total number of word variables to pop from stack during RET operation, necessary for command RET N
+
 string getAsmVar(string varName, string varCat="VARIABLE")  //returns the corresponding assembly variable in current scope
 {
     //get the id of the current scope table

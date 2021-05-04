@@ -2,55 +2,76 @@
 .STACK 100H
 .DATA
 	var_1_1_a	DW	?
-	var_1_1_b	DW	?
-	var_1_1_i	DW	?
+	var_1_2_x	DW	?
+	var_1_2_a	DW	?
+	var_1_2_b	DW	?
+	var_1_3_a	DW	?
+	var_1_3_b	DW	?
 	t0	DW	?
-	t1	DW	?
 .CODE
-PROC MAIN
+
+_f PROC
+	PUSH BP
+	MOV BP, SP
+
+	MOV AX, 2
+	IMUL [BP+4]
+	MOV t0, AX
+	MOV DX, t0
+	POP BP
+	RET 2
+	;a=9
+	MOV [BP+4], 9
+
+_f ENDP
+
+_g PROC
+	PUSH BP
+	MOV BP, SP
+
+	;x=f(a)+a+b
+;argument: 
+	PUSH [BP+6]
+	CALL _f
+	MOV t0, DX
+	MOV AX, t0
+	ADD AX, [BP+6]
+	MOV t0, AX
+	MOV AX, t0
+	ADD AX, [BP+4]
+	MOV t0, AX
+	MOV AX, t0
+	MOV var_1_2_x, AX
+
+	MOV DX, var_1_2_x
+	POP BP
+	RET 4
+_g ENDP
+
+MAIN PROC
 	MOV AX, @DATA
 	MOV DS, AX
 
-	;b=0
-	MOV var_1_1_b, 0
+	;a=1
+	MOV var_1_3_a, 1
 
-	;i=0
-	MOV var_1_1_i, 0
+	;b=2
+	MOV var_1_3_b, 2
 
-L4:
-	;i<4
-	MOV AX, var_1_1_i
-	CMP AX, 4
-	JNL L0
-	MOV t0, 1
-	JMP L1
-L0:
-	AND t0, 0
-L1:
+	;a=g(a,b)
+;argument: 
+	PUSH var_1_3_a
+;argument: 
+	PUSH var_1_3_b
+	CALL _g
+	MOV t0, DX
+	MOV AX, t0
+	MOV var_1_3_a, AX
 
-	CMP t0, 0
-	JE L5
-	;a=3
-	MOV var_1_1_a, 3
+	MOV AH, 4CH
+	INT 21H
 
-L2:
-	MOV AX, var_1_1_a
-	MOV t0, AX
-	DEC var_1_1_a
-	CMP t0, 0
-	JE L3
-	;b++
-	MOV AX, var_1_1_b
-	MOV t1, AX
-	INC var_1_1_b
-
-	JMP L2
-L3:
-	MOV AX, var_1_1_i
-	MOV t1, AX
-	INC var_1_1_i
-	JMP L4
-L5:
+	;exit program
 	MOV AH, 4CH
 	INT 21H
 MAIN ENDP

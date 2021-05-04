@@ -12,6 +12,8 @@ private:
 	int array_length;
 	std::vector<SymbolInfo*> parameter_list;	//for functions only
 	bool is_defined;	//necessary to see whether a function was defined before calling it
+	bool is_parameter;	//necessay in procedures, since BP is used to access parameters in the stack
+	int parameter_index;	//stores n in [BP+n], we need it to access to access parameters in the stack
     SymbolInfo* next_symbol_info;
 
 public:
@@ -33,6 +35,7 @@ public:
 		this->type = symbol_type;
 		this->var_type = symbol_var_type;
 		this->var_category = symbol_var_category;
+		this->is_parameter = false;
 		next_symbol_info = NULL;
 	}
 
@@ -92,6 +95,16 @@ public:
 		return is_defined;
 	}
 
+	bool getIs_Parameter()
+	{
+		return is_parameter;
+	}
+
+	int getParameter_index()
+	{
+		return parameter_index;
+	}
+
 	void setVar_type(std::string var_type)
 	{
 		this->var_type = var_type;
@@ -115,6 +128,16 @@ public:
 	void isDefined(bool var)
 	{
 		this->is_defined = var;
+	}
+
+	void setIs_Parameter(bool param)
+	{
+		this->is_parameter = param;
+	}
+
+	void setParameter_index(int param_index)
+	{
+		this->parameter_index = param_index;
 	}
 
 	SymbolInfo*& getNext_symbol_info()

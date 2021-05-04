@@ -16,8 +16,19 @@ int lc = 0;		//label count, whenver a label is used, this variable is incremente
 string current_function = "";	//holds the name of the current function, necessary for procedures, "" means global scope
 int ret_n = 0;		//holds the total number of word variables to pop from stack during RET operation, necessary for command RET N
 
-string getAsmVar(string varName, string varCat="VARIABLE")  //returns the corresponding assembly variable in current scope
+string getAsmVar(string varName, string varCat="VARIABLE", bool called_from_declare=false)  //returns the corresponding assembly variable in current scope
 {
+	SymbolInfo* s = table->Lookup(varName);
+
+	//if the varName belongs to a parameter, then replace it with corresponding [BP+n], needed in procedures
+	if(s && !called_from_declare && (current_function != "main" || current_function != ""))
+	{
+		if(s->getIs_Parameter())	//if given varName belongs to a parameter
+		{
+			return "[BP+" + to_string(s->getParameter_index()) + "]";
+		}
+	}
+
     //get the id of the current scope table
     //string id = table->getCurrentScopeTableID();
 	string id = table->LookupScopeID(varName);
@@ -56,9 +67,9 @@ void DeclareVariablesAsm(bool declareTempVar = false)
         while(iter)
         {
             if(iter->getVar_category() == "VARIABLE")
-                DATA = DATA + "\t" + getAsmVar(iter->getSymbol_name()) + "\tDW" + "\t?\n";
+                DATA = DATA + "\t" + getAsmVar(iter->getSymbol_name(), "VARIABLE", true) + "\tDW" + "\t?\n";
             else if(iter->getVar_category() == "ARRAY")
-                DATA = DATA + "\t" + getAsmVar(iter->getSymbol_name(), "ARRAY") + "\tDW\t" + to_string(iter->getArray_length()) + "\tDUP\t(?)\n";
+                DATA = DATA + "\t" + getAsmVar(iter->getSymbol_name(), "ARRAY", true) + "\tDW\t" + to_string(iter->getArray_length()) + "\tDUP\t(?)\n";
 
             iter = iter->getNext_symbol_info();
         }
@@ -122,6 +133,32 @@ string getTemp(char* type1, char* type2, char* var1, char* var2)
 	{
 		return string(var2);
 	}
+}
+
+string FinalizeProcedureCode(string name, string func_body_code)
+{
+	string code = "";
+
+	if(name == "main")
+	{
+		code += "\n\
+MAIN PROC\n\
+	MOV AX, @DATA\n\
+	MOV DS, AX\n\n" + func_body_code + "\n\
+	;exit program\n\
+	MOV AH, 4CH\n\
+	INT 21H\n\
+MAIN ENDP\n";
+	}
+
+	else
+	{
+		code += "\n_" + name + " PROC\n\
+	PUSH BP\n\
+	MOV BP, SP\n\n" + func_body_code + "_" + name + " ENDP\n";	//prepended proc name with '_' to avoid collision with assembly keywords
+	}
+
+	return code;
 }
 
 void FinalizeAssemblyCode()

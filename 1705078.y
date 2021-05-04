@@ -89,7 +89,7 @@ start : program
 		parserlog << "Line " << yylineno-1 << ": start : program\n\n";
 		//parserlog << $$.name << "\n\n";
 
-		$$.code = string_to_char_array(string($1.code));
+		$$.code = string_to_char_array(string($1.code) + "\tEND MAIN\n");
 		CODE += string($$.code);
 	}
 	;
@@ -141,6 +141,8 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
 			//function found, time for insertion
 			insert_function_into_symbol_table($2->getSymbol_name(), string($1.name));
 			variables.clear();
+			
+			$$.code = string_to_char_array("");
 		}
 		| type_specifier ID LPAREN RPAREN SEMICOLON
 		{
@@ -150,6 +152,8 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
 			//function found, time for insertion
 			insert_function_into_symbol_table($2->getSymbol_name(), string($1.name));
 			variables.clear();
+
+			$$.code = string_to_char_array("");
 		}
 		;
 
@@ -160,6 +164,9 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {match_function
 
 			//match_function_definition_and_declaration(string($1.name), $2->getSymbol_name());
 
+			$$.code = string_to_char_array(FinalizeProcedureCode($2->getSymbol_name(), string($7.code)));
+
+/*
 			if($2->getSymbol_name() == "main")
 			{
 				$$.code = string_to_char_array("\
@@ -168,9 +175,9 @@ PROC MAIN\n\
 	MOV DS, AX\n\n" + string($7.code) + "\
 	MOV AH, 4CH\n\
 	INT 21H\n");
-
-				//CODE += string($$.code);
 			}
+*/
+				//CODE += string($$.code);
 		}
 		| type_specifier ID LPAREN RPAREN {match_function_definition_and_declaration(string($1.name), $2->getSymbol_name());} compound_statement
 		{
@@ -179,6 +186,8 @@ PROC MAIN\n\
 
 			//match_function_definition_and_declaration(string($1.name), $2->getSymbol_name());
 
+			$$.code = string_to_char_array(FinalizeProcedureCode($2->getSymbol_name(), string($6.code)));
+/*
 			if($2->getSymbol_name() == "main")
 			{
 				$$.code = string_to_char_array("\
@@ -189,9 +198,9 @@ PROC MAIN\n\
 	INT 21H\n\
 MAIN ENDP\n\
 	END MAIN");
-
-				//CODE += string($$.code);
 			}
+*/
+				//CODE += string($$.code);
 		}
  		;
 
@@ -202,6 +211,8 @@ parameter_list : parameter_list COMMA type_specifier ID
 
 			$4->setVar_type(string($3.name));
 			save_variable($4, "VARIABLE");
+
+			$$.code = string_to_char_array("");
 		}
 		| parameter_list COMMA type_specifier
 		{
@@ -211,6 +222,8 @@ parameter_list : parameter_list COMMA type_specifier ID
 			SymbolInfo* s = new SymbolInfo("", "ID");
 			s->setVar_type(string($3.name));
 			save_variable(s, "VARIABLE");
+
+			$$.code = string_to_char_array("");
 		}
  		| type_specifier ID %prec PARAMETER_LIST_RULE_WITHOUT_ERROR
 		{
@@ -218,7 +231,9 @@ parameter_list : parameter_list COMMA type_specifier ID
 			parserlog << "Line " << yylineno << ": parameter_list : type_specifier ID\n\n" << $$.name << "\n\n";
 
 			$2->setVar_type(string($1.name));
-			save_variable($2, "VARIABLE");			
+			save_variable($2, "VARIABLE");
+
+			$$.code = string_to_char_array("");			
 		}
 		| type_specifier %prec PARAMETER_LIST_RULE_WITHOUT_ERROR
 		{
@@ -228,6 +243,8 @@ parameter_list : parameter_list COMMA type_specifier ID
 			SymbolInfo* s = new SymbolInfo("", "ID");
 			s->setVar_type(string($1.name));
 			save_variable(s, "VARIABLE");
+
+			$$.code = string_to_char_array("");
 		}
 		| parameter_list error COMMA type_specifier ID
 		{
@@ -562,6 +579,23 @@ statement : var_declaration
 	{
 		$$.name = string_to_char_array(string("return ") + string($2.name) + string(";"));
 		parserlog << "Line " << yylineno << ": statement : RETURN expression SEMICOLON\n\n" << $$.name << "\n\n";
+
+		string CUR_CODE = "";
+
+		if(current_function != "main")
+			CUR_CODE += "\
+	MOV DX, " + string($2.var) + "\n\
+	POP BP\n\
+	RET " + to_string(ret_n) + "\n";	//save the return value in register DX
+		else
+			CUR_CODE += "\
+	MOV AH, 4CH\n\
+	INT 21H\n";			//exit program if return statement is found in main function
+
+		//reset tvc
+		tvc = -1;
+		
+		$$.code = string_to_char_array(string($2.code) + CUR_CODE);
 	}
 	  ;
 	  
@@ -779,10 +813,8 @@ expression : logic_expression
 				else if(string($3.type) == "VAR" || string($3.type) == "TEMP")
 				{
 					CUR_CODE += "\
-	PUSH AX\n\
 	MOV AX, " + string($3.var) + "\n\
-	MOV " + string($1.var) + ", AX\n\
-	POP AX\n";
+	MOV " + string($1.var) + ", AX\n";
 				}
 
 				$$.var = $1.var;
@@ -794,24 +826,18 @@ expression : logic_expression
 				if(string($3.type) == "CONST")
 				{
 					CUR_CODE += "\
-	PUSH BX\n\
 	MOV BX, " + string($1.index) + "\n\
 	SAL BX, 1\n\
-	MOV " + string($1.var) + "[BX], " + string($3.var) + "\n\
-	POP BX\n";
+	MOV " + string($1.var) + "[BX], " + string($3.var) + "\n";
 				}
 
 				else if(string($3.type) == "VAR" || string($3.type) == "TEMP")
 				{
 					CUR_CODE += "\
-	PUSH AX\n\
-	PUSH BX\n\
 	MOV BX, " + string($1.index) + "\n\
 	SAL BX, 1\n\
 	MOV AX, " + string($3.var) + "\n\
-	MOV " + string($1.var) + "[BX], AX\n\
-	POP BX\n\
-	POP AX\n";
+	MOV " + string($1.var) + "[BX], AX\n";
 				}
 
 				$$.var = $1.var;
@@ -1035,7 +1061,6 @@ simple_expression : term
 			string CUR_CODE = "";
 
 			CUR_CODE += "\
-	PUSH AX\n\
 	MOV AX, " + string($1.var) + "\n";
 
 			if($2->getSymbol_name() == "+")
@@ -1067,8 +1092,7 @@ simple_expression : term
 			}
 	
 			CUR_CODE += "\
-	MOV " + temp + ", AX\n\
-	POP AX\n";
+	MOV " + temp + ", AX\n";
 
 			$$.var = string_to_char_array(string(temp));
 			$$.type = string_to_char_array(string("TEMP"));
@@ -1438,7 +1462,7 @@ factor : variable
 			string temp = "";
 
 			CUR_CODE += "\
-	CALL " + s->getSymbol_name() + "\n";
+	CALL _" + s->getSymbol_name() + "\n";
 
 			if(s->getVar_type() == "void")
 			{

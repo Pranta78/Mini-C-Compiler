@@ -170,6 +170,8 @@ void match_function_definition_and_declaration(string return_type, string name)
 	if(s == NULL)
 	{
 		insert_function_into_symbol_table(name, return_type, true);
+		current_function = name;	//save the function name, we need it in procedures to determine whether we should replace parameters with [BP+n] or not in getAsmVar()
+		ret_n = variables.size() * 2;	//how many addition bytes to return in RET opcode, necessary because we are saving parameters in the stack
 		return;
 	}
 
@@ -254,6 +256,9 @@ void match_function_definition_and_declaration(string return_type, string name)
 */
 
 	//variables.clear();
+
+	current_function = name;	//save the function name, we need it in procedures to determine whether we should replace parameters with [BP+n] or not in getAsmVar()
+	ret_n = declar_parameter_list.size() * 2;	//how many addition bytes to return in RET opcode, necessary because we are saving parameters in the stack
 }
 
 void Enter_scope()
@@ -264,7 +269,12 @@ void Enter_scope()
 	for(int i=0; i<variables.size(); i++)
 	{
 		if(variables[i]->getSymbol_name() != "")	//when the parameter name is given
+		{
 			table->Insert(variables[i]->getSymbol_name(), variables[i]->getSymbol_type(), variables[i]->getVar_type(), "VARIABLE");
+			SymbolInfo* s = table->Lookup(variables[i]->getSymbol_name());
+			s->setIs_Parameter(true);
+			s->setParameter_index(((variables.size()+1)-i)*2);	//multiplied by 2 since we are using word variables
+		}
 	}
 
 	variables.clear();

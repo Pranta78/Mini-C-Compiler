@@ -25,7 +25,7 @@ string getAsmVar(string varName, string varCat="VARIABLE", bool called_from_decl
 	{
 		if(s->getIs_Parameter())	//if given varName belongs to a parameter
 		{
-			return "[BP+" + to_string(s->getParameter_index()) + "]";
+			return "WORD PTR [BP+" + to_string(s->getParameter_index()) + "]";
 		}
 	}
 

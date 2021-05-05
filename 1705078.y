@@ -1634,7 +1634,7 @@ arguments : arguments COMMA logic_expression
 
 			//$$.var = string_to_char_array(temp);
 			//$$.type = string_to_char_array(string("TEMP"));
-			$$.code = string_to_char_array(string($1.code) + ";argument: " + string($3.code) + "\n" + CUR_CODE);
+			$$.code = string_to_char_array(string($1.code) + ";argument:\n" + string($3.code) + "\n" + CUR_CODE);
 		}
 	      | logic_expression
 		{
@@ -1672,7 +1672,7 @@ arguments : arguments COMMA logic_expression
 
 			//$$.var = string_to_char_array(temp);
 			//$$.type = string_to_char_array(string("TEMP"));
-			$$.code = string_to_char_array(";argument: " + string($1.code) + "\n" + CUR_CODE);
+			$$.code = string_to_char_array(";argument:\n" + string($1.code) + "\n" + CUR_CODE);
 		}
 	      ;
 

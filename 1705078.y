@@ -427,7 +427,7 @@ statement : var_declaration
 		parserlog << "Line " << yylineno << ": statement : expression_statement\n\n" << $$.name << "\n\n";
 
 		//reset tvc
-		tvc = -1;
+		//tvc = -1;
 
 		$$.code = string_to_char_array(string($1.code));
 	}
@@ -461,7 +461,7 @@ statement : var_declaration
 	JE " + end_forloop_label + "\n";	//if condition fails, then exit loop
 
 		//TODO:reset the counter for temp vars
-		tvc = -1;
+		//tvc = -1;
 
 		//$7.code executes when the condition is satisfied, then jumps back to forloop_label
 		CUR_CODE += string($7.code) + string($5.code) + "\tJMP "+ forloop_label + "\n" + end_forloop_label + ":\n";
@@ -491,7 +491,7 @@ statement : var_declaration
 	JE " + exit_label + "\n";	//if condition fails
 
 		//TODO:reset the counter for temp vars
-		tvc = -1;
+		//tvc = -1;
 
 		//$5.code executes when the condition is satisfied, otherwise jumps to the exit_label
 		CUR_CODE += string($5.code) + exit_label + ":\n";
@@ -521,7 +521,7 @@ statement : var_declaration
 	JE " + else_label + "\n";	//if condition fails
 
 		//TODO:reset the counter for temp vars
-		tvc = -1;
+		//tvc = -1;
 
 		//$5.code executes when the condition is satisfied, then it jumps to the end of if-else block (end_if_label)
 		CUR_CODE += string($5.code) + "\tJMP " + end_if_label + "\n";
@@ -555,7 +555,7 @@ statement : var_declaration
 	JE " + end_while_label + "\n";	//if condition fails, then exit loop
 
 		//TODO:reset the counter for temp vars
-		tvc = -1;
+		//tvc = -1;
 
 		//$5.code executes when the condition is satisfied, then jumps back to while_label
 		CUR_CODE += string($5.code) + "\tJMP "+ while_label + "\n" + end_while_label + ":\n";
@@ -593,7 +593,7 @@ statement : var_declaration
 	INT 21H\n";			//exit program if return statement is found in main function
 
 		//reset tvc
-		tvc = -1;
+		//tvc = -1;
 		
 		$$.code = string_to_char_array(string($2.code) + CUR_CODE);
 	}

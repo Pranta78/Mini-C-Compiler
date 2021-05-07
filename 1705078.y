@@ -846,7 +846,7 @@ expression : logic_expression
 
 			if(string($3.type) == "TEMP")	//make the temp var free to use
 			{
-				tvc--;
+				inc_tvc();//tvc--;
 			}
 
 			$$.code = string_to_char_array(string($3.code) + CUR_CODE);
@@ -1074,7 +1074,7 @@ simple_expression : term
 			
 			if(string($1.type) == "TEMP" && string($3.type) == "TEMP")
 			{
-				tvc--;
+				inc_tvc();//tvc--;
 				temp = "t" + to_string(tvc);
 			}
 			else if(string($1.type) != "TEMP" && string($3.type) != "TEMP")
@@ -1202,7 +1202,7 @@ term :	unary_expression
 			
 			if(string($1.type) == "TEMP" && string($3.type) == "TEMP")
 			{
-				tvc--;
+				inc_tvc();//tvc--;
 				temp = "t" + to_string(tvc);
 			}
 			else if(string($1.type) != "TEMP" && string($3.type) != "TEMP")
@@ -1630,7 +1630,7 @@ arguments : arguments COMMA logic_expression
 
 			//if the logic_expression was in a temp var, then make it available to use
 			if(string($3.type) == "TEMP")
-				tvc--;
+				inc_tvc();//tvc--;
 
 			//$$.var = string_to_char_array(temp);
 			//$$.type = string_to_char_array(string("TEMP"));
@@ -1668,7 +1668,7 @@ arguments : arguments COMMA logic_expression
 
 			//if the logic_expression was in a temp var, then make it available to use
 			if(string($1.type) == "TEMP")
-				tvc--;
+				inc_tvc();//tvc--;
 
 			//$$.var = string_to_char_array(temp);
 			//$$.type = string_to_char_array(string("TEMP"));

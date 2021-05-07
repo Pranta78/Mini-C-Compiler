@@ -5,9 +5,25 @@
 	var_1_2_a	DW	?
 	var_1_2_b	DW	?
 	var_1_2_c	DW	?
+	var_1_2_d	DW	?
 	t0	DW	?
 	t1	DW	?
 	t2	DW	?
+	t3	DW	?
+	t4	DW	?
+	t5	DW	?
+	t6	DW	?
+	t7	DW	?
+	t8	DW	?
+	t9	DW	?
+	t10	DW	?
+	t11	DW	?
+	t12	DW	?
+	t13	DW	?
+	t14	DW	?
+	t15	DW	?
+	t16	DW	?
+	t17	DW	?
 .CODE
 
 _fib PROC
@@ -34,12 +50,12 @@ L3:
 	JNE L4
 	CMP t1, 0
 	JNE L4
-	AND t0, 0
+	AND t2, 0
 	JMP L5
 L4:
-	MOV t0, 1
+	MOV t2, 1
 L5:
-	CMP t0, 0
+	CMP t2, 0
 	JE L6
 	MOV DX, 1
 	POP BP
@@ -48,23 +64,23 @@ L6:
 ;argument:
 	MOV AX, WORD PTR [BP+4]
 	SUB AX, 1
-	MOV t1, AX
+	MOV t3, AX
 
-	PUSH t1
+	PUSH t3
 	CALL _fib
-	MOV t1, DX
+	MOV t5, DX
 ;argument:
 	MOV AX, WORD PTR [BP+4]
 	SUB AX, 2
-	MOV t2, AX
+	MOV t6, AX
 
-	PUSH t2
+	PUSH t6
 	CALL _fib
-	MOV t2, DX
-	MOV AX, t1
-	ADD AX, t2
-	MOV t1, AX
-	MOV DX, t1
+	MOV t8, DX
+	MOV AX, t5
+	ADD AX, t8
+	MOV t9, AX
+	MOV DX, t9
 	POP BP
 	RET 2
 _fib ENDP
@@ -73,35 +89,45 @@ MAIN PROC
 	MOV AX, @DATA
 	MOV DS, AX
 
-	;a=fib(1)
-;argument:
-
-	MOV AX, 1
-	PUSH AX
-	CALL _fib
-	MOV t2, DX
-	MOV AX, t2
-	MOV var_1_2_a, AX
-
-	;b=fib(4)
+	;a=fib(4)
 ;argument:
 
 	MOV AX, 4
 	PUSH AX
 	CALL _fib
-	MOV t2, DX
-	MOV AX, t2
-	MOV var_1_2_b, AX
+	MOV t10, DX
+	MOV AX, t10
+	MOV var_1_2_a, AX
 
-	;c=fib(5)
+	;b=fib(5)
 ;argument:
 
 	MOV AX, 5
 	PUSH AX
 	CALL _fib
-	MOV t2, DX
-	MOV AX, t2
+	MOV t12, DX
+	MOV AX, t12
+	MOV var_1_2_b, AX
+
+	;c=fib(6)
+;argument:
+
+	MOV AX, 6
+	PUSH AX
+	CALL _fib
+	MOV t14, DX
+	MOV AX, t14
 	MOV var_1_2_c, AX
+
+	;d=fib(7)
+;argument:
+
+	MOV AX, 7
+	PUSH AX
+	CALL _fib
+	MOV t16, DX
+	MOV AX, t16
+	MOV var_1_2_d, AX
 
 
 	;exit program

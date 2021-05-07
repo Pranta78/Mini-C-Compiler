@@ -117,7 +117,7 @@ string getTemp(char* type1, char* type2, char* var1, char* var2)
 {
 	if(string(type1) == "TEMP" && string(type2) == "TEMP")
 	{
-		tvc--;
+		inc_tvc();//tvc--;
 		return "t" + to_string(tvc);
 	}
 	else if(string(type1) != "TEMP" && string(type2) != "TEMP")

@@ -1298,6 +1298,37 @@ unary_expression : ADDOP unary_expression
 			$$.name = string_to_char_array("!"+string($2.name));
 
 			parserlog << "Line " << yylineno << ": unary_expression : NOT unary_expression\n\n" << $$.name << "\n\n";
+
+			string false_label = newLabel();	//jumps to this label if condition is false
+			string exit_label = newLabel();		//jumps to this label to exit (to skip false_label)
+			
+			string CUR_CODE = "";
+
+			CUR_CODE += "\
+	MOV AX, " + string($2.var) + "\n\
+	CMP AX, 0\n\
+	JNE " + false_label + "\n";	//since NOT or "!" is a logical operator, condition is true when equal to 0, else false
+
+			string temp = "";
+
+			if(string($2.type) == "TEMP")
+				temp = string($2.var);
+			else
+			{
+				inc_tvc();	//need new temp var to store this expression
+				temp = "t" + to_string(tvc);
+			}
+
+			CUR_CODE += "\
+	MOV " + temp + ", 1\n\
+	JMP " + exit_label + "\n";	//this code executes if condition is true, so setting the temp var to 1
+
+			CUR_CODE += false_label + ":\n\
+	AND " + temp + ", 0\n" + exit_label + ":\n";
+			
+			$$.var = string_to_char_array(temp);
+			$$.type = string_to_char_array("TEMP");
+			$$.code = string_to_char_array(string($2.code) + CUR_CODE);
 		}
 		 | factor
 		{

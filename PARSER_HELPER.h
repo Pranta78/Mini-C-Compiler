@@ -92,6 +92,7 @@ void insert_variables_into_symbol_table(string data_type)
 		}
 	}
 
+	insert_variables_into_local_var_list(variables);
 	variables.clear();
 }
 

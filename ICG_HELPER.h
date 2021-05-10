@@ -16,6 +16,8 @@ int lc = 0;		//label count, whenver a label is used, this variable is incremente
 string current_function = "";	//holds the name of the current function, necessary for procedures, "" means global scope
 int ret_n = 0;		//holds the total number of word variables to pop from stack during RET operation, necessary for command RET N
 
+vector<string> local_var_list;	//holds the local variable names in a function, necessary to save these vars before function call
+
 string getAsmVar(string varName, string varCat="VARIABLE", bool called_from_declare=false)  //returns the corresponding assembly variable in current scope
 {
 	SymbolInfo* s = table->Lookup(varName);
@@ -159,6 +161,19 @@ MAIN ENDP\n";
 	}
 
 	return code;
+}
+
+void insert_variables_into_local_var_list(vector<SymbolInfo*> variables)
+{
+	//saves local vars of a function after they are declared in the vector "local_var_list"
+	//necessary to preserve local vars before function call
+	for(int i=0; i<variables.size(); i++)
+	{
+		string name = getAsmVar(variables[i]->getSymbol_name(), variables[i]->getVar_category());
+		local_var_list.push_back(name);
+	}
+
+	//local_var_list is cleared in the rule of func_definition
 }
 
 void FinalizeAssemblyCode()

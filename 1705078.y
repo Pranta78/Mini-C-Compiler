@@ -165,6 +165,7 @@ func_definition : type_specifier ID LPAREN parameter_list RPAREN {match_function
 			//match_function_definition_and_declaration(string($1.name), $2->getSymbol_name());
 
 			$$.code = string_to_char_array(FinalizeProcedureCode($2->getSymbol_name(), string($7.code)));
+			local_var_list.clear();
 
 /*
 			if($2->getSymbol_name() == "main")
@@ -187,6 +188,7 @@ PROC MAIN\n\
 			//match_function_definition_and_declaration(string($1.name), $2->getSymbol_name());
 
 			$$.code = string_to_char_array(FinalizeProcedureCode($2->getSymbol_name(), string($6.code)));
+			local_var_list.clear();
 /*
 			if($2->getSymbol_name() == "main")
 			{
@@ -1488,6 +1490,36 @@ factor : variable
 
 		if(s)	//get the corresponding Symbol Table entry of the function (ID)
 		{
+			//saving local variables and temporary variables in the stack before function call
+			string PUSH_TO_STACK_CODE = "\t;saving local variables in the stack before function call\n";
+			
+			for(int j=0; j<local_var_list.size(); j++)
+			{
+				PUSH_TO_STACK_CODE += "\
+	PUSH " + local_var_list[j] + "\n";
+			}
+
+			for(int j=-1; j<tvc; j++)
+			{
+				PUSH_TO_STACK_CODE += "\
+	PUSH t" + to_string(j+1) + "\n";
+			}
+
+			//restore local variables and temporary variables from the stack after function call
+			string POP_FROM_STACK_CODE = "\t;restoring local variables from the stack after function call\n";
+
+			for(int j=tvc; j>=0; j--)
+			{
+				POP_FROM_STACK_CODE += "\
+	POP t" + to_string(j) + "\n";
+			}
+
+			for(int j=local_var_list.size()-1; j>=0; j--)
+			{
+				POP_FROM_STACK_CODE += "\
+	POP " + local_var_list[j] + "\n";
+			}
+
 			//call the function, arguments are placed in stack (in $3.code)
 			string CUR_CODE = "";
 			string temp = "";
@@ -1507,12 +1539,13 @@ factor : variable
 				temp = "t" + to_string(tvc);
 
 				CUR_CODE += "\
+	;saving the return value in DX in a temporary variable\n\
 	MOV " + temp + ", DX\n";
 			}
 
 			$$.var = string_to_char_array(temp);
 			$$.type = string_to_char_array("TEMP");
-			$$.code = string_to_char_array(string($3.code) + CUR_CODE);
+			$$.code = string_to_char_array(PUSH_TO_STACK_CODE + string($3.code) + CUR_CODE + POP_FROM_STACK_CODE);
 		}
 	}
 	| LPAREN expression RPAREN
@@ -1619,7 +1652,7 @@ argument_list : arguments
 			$$.name = string_to_char_array(string($1.name));
 			parserlog << "Line " << yylineno << ": argument_list : arguments\n\n" << $$.name << "\n\n";
 
-			$$.code = string_to_char_array(string($1.code));
+			$$.code = string_to_char_array(";arguments:\n" + string($1.code));
 		}
 		|
 		{
@@ -1665,7 +1698,7 @@ arguments : arguments COMMA logic_expression
 
 			//$$.var = string_to_char_array(temp);
 			//$$.type = string_to_char_array(string("TEMP"));
-			$$.code = string_to_char_array(string($1.code) + ";argument:\n" + string($3.code) + "\n" + CUR_CODE);
+			$$.code = string_to_char_array(string($1.code) + string($3.code) + CUR_CODE);
 		}
 	      | logic_expression
 		{
@@ -1703,7 +1736,7 @@ arguments : arguments COMMA logic_expression
 
 			//$$.var = string_to_char_array(temp);
 			//$$.type = string_to_char_array(string("TEMP"));
-			$$.code = string_to_char_array(";argument:\n" + string($1.code) + "\n" + CUR_CODE);
+			$$.code = string_to_char_array(string($1.code) + CUR_CODE);
 		}
 	      ;
 

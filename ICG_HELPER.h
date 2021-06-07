@@ -157,7 +157,8 @@ MAIN ENDP\n";
 	{
 		code += "\n_" + name + " PROC\n\
 	PUSH BP\n\
-	MOV BP, SP\n\n" + func_body_code + "_" + name + " ENDP\n";	//prepended proc name with '_' to avoid collision with assembly keywords
+	MOV BP, SP\n\n" + func_body_code + "\n\tPOP BP\n\tRET " + to_string(ret_n) + "\n" + "_" + name + " ENDP\n";	//prepended proc name with '_' to avoid collision with assembly keywords
+	//also added pop bp and return instruction so that void functions and functions with no return statement can return to caller
 	}
 
 	return code;
@@ -179,8 +180,8 @@ void insert_variables_into_local_var_list(vector<SymbolInfo*> variables)
 void FinalizeAssemblyCode()
 {
 	ofstream asmic("code.asm");
-    asmic << MODEL << STACK << DATA << CODE;
-    asmic.close();
+	asmic << MODEL << STACK << DATA << CODE;
+	asmic.close();
 }
 
 #endif // ICG_HELPER_H_INCLUDED

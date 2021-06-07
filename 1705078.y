@@ -89,7 +89,7 @@ start : program
 		parserlog << "Line " << yylineno-1 << ": start : program\n\n";
 		//parserlog << $$.name << "\n\n";
 
-		$$.code = string_to_char_array(string($1.code) + "\tEND MAIN\n");
+		$$.code = string_to_char_array(string($1.code) + "\nINCLUDE PRINTLN.asm\n\tEND MAIN\n");
 		CODE += string($$.code);
 	}
 	;
@@ -576,6 +576,17 @@ statement : var_declaration
 			errorlog << "Error at line " << yylineno << ": variable \"" << $3->getSymbol_name() << "\" was not declared." << "\n\n";
 			parser_error_count++;
 		}
+
+		string CUR_CODE = "";
+
+		//push the argument in stack
+			CUR_CODE += "\
+	PUSH " + getAsmVar($3->getSymbol_name()) + "\n";
+
+		CUR_CODE += "\
+	CALL PRINTLN\n";
+
+		$$.code = string_to_char_array(CUR_CODE);
 	}
 	  | RETURN expression SEMICOLON
 	{

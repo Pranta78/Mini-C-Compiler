@@ -754,7 +754,8 @@ variable : ID
 		{
 			$$.var = string_to_char_array(getAsmVar($1->getSymbol_name(), $1->getVar_category()));
 			$$.type = string_to_char_array("ARRVAR");
-			$$.index = $3.var;
+			$$.index = string_to_char_array(string($3.var));
+			$$.code = string_to_char_array(string($3.code));
 			//$$.index_type = $3.type;
 		}
 	}
@@ -862,7 +863,13 @@ expression : logic_expression
 				tvc--;
 			}
 
-			$$.code = string_to_char_array(string($3.code) + CUR_CODE);
+			if(string($1.type) == "ARRVAR")
+			{	//append the code to calculate index ie expression of the index is 'variable' is an array
+				$$.code = string_to_char_array(string($3.code) + string($1.code) + CUR_CODE);
+			}
+
+			else
+				$$.code = string_to_char_array(string($3.code) + CUR_CODE);
 		} 	
 	   ;
 			
@@ -1385,9 +1392,11 @@ factor : variable
 		
 			$$.var = string_to_char_array(string(temp));
 			$$.type = string_to_char_array(string("TEMP"));
+			$$.code = string_to_char_array(string($1.code) + CUR_CODE);
 		}
 
-		$$.code = string_to_char_array(CUR_CODE);
+		else
+			$$.code = string_to_char_array(CUR_CODE);
 	}
 	| ID LPAREN argument_list RPAREN
 	{

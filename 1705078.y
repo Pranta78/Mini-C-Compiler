@@ -256,6 +256,8 @@ parameter_list : parameter_list COMMA type_specifier ID
 
 			$5->setVar_type(string($4.name));
 			save_variable($5, "VARIABLE");
+
+			$$.code = string_to_char_array("");
 		}
 		| parameter_list error COMMA type_specifier
 		{
@@ -266,6 +268,8 @@ parameter_list : parameter_list COMMA type_specifier ID
 			SymbolInfo* s = new SymbolInfo("", "ID");
 			s->setVar_type(string($4.name));
 			save_variable(s, "VARIABLE");
+
+			$$.code = string_to_char_array("");
 		}
  		| type_specifier ID error
 		{
@@ -275,7 +279,9 @@ parameter_list : parameter_list COMMA type_specifier ID
 			parserlog << "Line " << yylineno << ": parameter_list : type_specifier ID\n\n" << $$.name << "\n\n";
 
 			$2->setVar_type(string($1.name));
-			save_variable($2, "VARIABLE");			
+			save_variable($2, "VARIABLE");
+
+			$$.code = string_to_char_array("");			
 		}
 		| type_specifier error
 		{
@@ -287,6 +293,8 @@ parameter_list : parameter_list COMMA type_specifier ID
 			SymbolInfo* s = new SymbolInfo("", "ID");
 			s->setVar_type(string($1.name));
 			save_variable(s, "VARIABLE");
+
+			$$.code = string_to_char_array("");
 		}
  		;
 
@@ -370,6 +378,8 @@ declaration_list : declaration_list COMMA ID
 			$$.name = string_to_char_array(string($1.name)+","+$4->getSymbol_name());
 
 			save_variable($4, "VARIABLE");
+
+			$$.code = string_to_char_array("");
 		}
  		  | declaration_list error COMMA ID LTHIRD CONST_INT RTHIRD
 		{
@@ -379,6 +389,8 @@ declaration_list : declaration_list COMMA ID
 			$$.name = string_to_char_array(string($1.name)+","+$4->getSymbol_name()+"["+$6->getSymbol_name()+"]");
 
 			save_variable($4, "ARRAY", atoi($6->getSymbol_name().c_str()));
+
+			$$.code = string_to_char_array("");
 		}
  		  | error COMMA ID
 		{
@@ -388,6 +400,8 @@ declaration_list : declaration_list COMMA ID
 			$$.name = string_to_char_array($3->getSymbol_name());
 
 			save_variable($3, "VARIABLE");
+
+			$$.code = string_to_char_array("");
 		}
  		  | error COMMA ID LTHIRD CONST_INT RTHIRD
 		{
@@ -397,6 +411,8 @@ declaration_list : declaration_list COMMA ID
 			$$.name = string_to_char_array($3->getSymbol_name()+"["+$5->getSymbol_name()+"]");
 
 			save_variable($3, "ARRAY", atoi($5->getSymbol_name().c_str()));
+
+			$$.code = string_to_char_array("");
 		}
  		;
 
@@ -645,6 +661,7 @@ expression_statement : SEMICOLON
 		yyerrok;
 
 		$$.name = string_to_char_array(";");
+		$$.code = string_to_char_array("");
 	}			
 	| expression error SEMICOLON
 	{
@@ -652,6 +669,7 @@ expression_statement : SEMICOLON
 		yyerrok;
 		
 		$$.name = string_to_char_array(string($1.name) + ";");
+		$$.code = string_to_char_array("");
 	}
 	;
 	  
@@ -697,6 +715,13 @@ variable : ID
 		{
 			$$.var = string_to_char_array(getAsmVar(s->getSymbol_name(), s->getVar_category()));
 			$$.type = string_to_char_array("VAR");
+		}
+
+		else	//in case of error, pass an empty string to avoid segfault
+		{
+			$$.var = string_to_char_array("");
+			$$.type = string_to_char_array("VAR");
+			$$.code = string_to_char_array("");
 		}
 	}
 	 | ID LTHIRD expression RTHIRD
@@ -757,6 +782,13 @@ variable : ID
 			$$.index = string_to_char_array(string($3.var));
 			$$.code = string_to_char_array(string($3.code));
 			//$$.index_type = $3.type;
+		}
+
+		else	//in case of error, pass an empty string to avoid segfault
+		{
+			$$.var = string_to_char_array("");
+			$$.type = string_to_char_array("VAR");
+			$$.code = string_to_char_array("");
 		}
 	}
 	 ;
@@ -1569,6 +1601,13 @@ factor : variable
 			$$.type = string_to_char_array("TEMP");
 			$$.code = string_to_char_array(PUSH_TO_STACK_CODE + string($3.code) + CUR_CODE + POP_FROM_STACK_CODE);
 		}
+
+		else	//in case of error, pass an empty string to avoid segfault
+		{
+			$$.var = string_to_char_array("");
+			$$.type = string_to_char_array("");
+			$$.code = string_to_char_array("");
+		}
 	}
 	| LPAREN expression RPAREN
 	{
@@ -1598,6 +1637,10 @@ factor : variable
 		$$.name = string_to_char_array($1->getSymbol_name());
 
 		parserlog << "Line " << yylineno << ": factor : CONST_FLOAT\n\n" << $$.name << "\n\n";
+
+		$$.var = string_to_char_array("");
+		$$.type = string_to_char_array("");
+		$$.code = string_to_char_array("");
 	}
 	| variable INCOP
 	{

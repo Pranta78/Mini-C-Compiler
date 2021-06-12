@@ -180,7 +180,8 @@ void insert_variables_into_local_var_list(vector<SymbolInfo*> variables)
 void FinalizeAssemblyCode()
 {
 	ofstream asmic("code.asm");
-	asmic << MODEL << STACK << DATA << CODE;
+	if(parser_error_count == 0)	//don't generate asm code in case of errors
+		asmic << MODEL << STACK << DATA << CODE;
 	asmic.close();
 }
 

@@ -567,7 +567,7 @@ statement : var_declaration
 	}
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON
 	{
-		$$.name = string_to_char_array(string("printf") + string("(") + $3->getSymbol_name() + string(")") + string(";"));
+		$$.name = string_to_char_array(string("println") + string("(") + $3->getSymbol_name() + string(")") + string(";"));
 		parserlog << "Line " << yylineno << ": statement : PRINTLN LPAREN ID RPAREN SEMICOLON\n\n" << $$.name << "\n\n";
 
 		if(!table->Lookup($3->getSymbol_name()))

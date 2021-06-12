@@ -88,7 +88,7 @@ NEWLINE (\n)|(\r\n)
 "return"	{return RETURN;}
 "case"		{return CASE;}
 "continue"	{return CONTINUE;}
-"printf"	{return PRINTLN;}
+"println"	{return PRINTLN;}
 
 "+"			|
 "-"			{	

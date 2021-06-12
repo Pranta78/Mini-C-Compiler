@@ -43,6 +43,15 @@ PRINTLN_PRINT_AX:   ;remainders/digits are stored in reverse order, so pop the s
 	INT 21H
 	LOOP PRINTLN_PRINT_AX
 
+	;Display CRLF
+	MOV DL, 0DH
+	MOV AH, 2
+	INT 21H
+
+	MOV DL, 0AH
+	MOV AH, 2
+	INT 21H
+
 	POP BP
 	RET 2
             

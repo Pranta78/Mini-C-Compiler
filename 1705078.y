@@ -24,6 +24,7 @@ FILE* fp;
 SymbolTable *table = new SymbolTable(30);
 int parser_error_count = 0;
 
+#include "OPTIMIZER_HELPER.h"
 #include "ICG_HELPER.h"
 #include "PARSER_HELPER.h"
 

@@ -180,9 +180,22 @@ void insert_variables_into_local_var_list(vector<SymbolInfo*> variables)
 void FinalizeAssemblyCode()
 {
 	ofstream asmic("code.asm");
-	if(parser_error_count == 0)	//don't generate asm code in case of errors
+	if(parser_error_count == 0)	//generate asm code in case of no errors
+	{
 		asmic << MODEL << STACK << DATA << CODE;
-	asmic.close();
+		asmic.close();
+		optimize();
+		return;
+	}
+
+	else
+	{
+		asmic << "";
+		ofstream outfile("optimized_code.asm");
+		outfile << "";
+		asmic.close();
+		outfile.close();
+	}
 }
 
 #endif // ICG_HELPER_H_INCLUDED

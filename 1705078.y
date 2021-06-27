@@ -484,9 +484,11 @@ statement : var_declaration
 
 		//$7.code executes when the condition is satisfied, then jumps back to forloop_label
 		CUR_CODE += string($7.code) + string($5.code) + "\tJMP "+ forloop_label + "\n" + end_forloop_label + ":\n";
+
+		string C_Code_Comment = "\t;for(" + string($3.name) + string($4.name) + string($5.name) + ")\n";
 		
 		//preceding the forloop_label loop with forloop_label (after $3.code or initialization block) so that we can jump to this label and re-enter the loop
-		$$.code = string_to_char_array(string($3.code) + forloop_label + string(":\n") + string($4.code) + CUR_CODE);
+		$$.code = string_to_char_array(C_Code_Comment + string($3.code) + forloop_label + string(":\n") + string($4.code) + CUR_CODE + "\t;for loop finished\n");
 	}
 	  | IF LPAREN expression RPAREN statement %prec LOWER_THAN_ELSE
 	{
@@ -515,7 +517,9 @@ statement : var_declaration
 		//$5.code executes when the condition is satisfied, otherwise jumps to the exit_label
 		CUR_CODE += string($5.code) + exit_label + ":\n";
 
-		$$.code = string_to_char_array(string($3.code) + CUR_CODE);
+		string C_Code_Comment = "\t;if(" + string($3.name) + ")\n";
+
+		$$.code = string_to_char_array(C_Code_Comment + string($3.code) + CUR_CODE + "\t;if-block finished\n");
 	}
 	  | IF LPAREN expression RPAREN statement ELSE statement
 	{
@@ -545,10 +549,12 @@ statement : var_declaration
 		//$5.code executes when the condition is satisfied, then it jumps to the end of if-else block (end_if_label)
 		CUR_CODE += string($5.code) + "\tJMP " + end_if_label + "\n";
 		//$7.code executes when the condition is failed
-		CUR_CODE += else_label + ":\n" + string($7.code) + end_if_label + ":\n";
+		CUR_CODE += "\t;else\n" + else_label + ":\n" + string($7.code) + end_if_label + ":\n";
+
+		string C_Code_Comment = "\t;if(" + string($3.name) + ")\n";
 		
 		//$3.code executes before the if-else block, then CUR_CODE is executed
-		$$.code = string_to_char_array(string($3.code) + CUR_CODE);
+		$$.code = string_to_char_array(C_Code_Comment + string($3.code) + CUR_CODE + "\t;if-else finished\n");
 	}
 	  | WHILE LPAREN expression RPAREN statement
 	{
@@ -578,9 +584,11 @@ statement : var_declaration
 
 		//$5.code executes when the condition is satisfied, then jumps back to while_label
 		CUR_CODE += string($5.code) + "\tJMP "+ while_label + "\n" + end_while_label + ":\n";
+
+		string C_Code_Comment = "\t;while(" + string($3.name) + ")\n";
 		
 		//preceding the while loop with while_label so that we can jump to this label and re-enter the loop
-		$$.code = string_to_char_array(while_label + string(":\n") + string($3.code) + CUR_CODE);
+		$$.code = string_to_char_array(C_Code_Comment + while_label + string(":\n") + string($3.code) + CUR_CODE + "\t;while loop finished\n");
 	}
 	  | PRINTLN LPAREN ID RPAREN SEMICOLON
 	{

@@ -1552,14 +1552,18 @@ factor : variable
 		if(s)	//get the corresponding Symbol Table entry of the function (ID)
 		{
 			//saving local variables (for recursive calls) and temporary variables in the stack before function call
-			string PUSH_TO_STACK_CODE = "\t;saving local variables in the stack before function call\n";
+			string PUSH_TO_STACK_CODE = "";
 			
 			if($1->getSymbol_name() == current_function)	//save local vars only for recursive calls
+			{
+				PUSH_TO_STACK_CODE = "\t;saving local variables in the stack before function call\n";
+				
 				for(int j=0; j<local_var_list.size(); j++)
 				{
 					PUSH_TO_STACK_CODE += "\
 	PUSH " + local_var_list[j] + "\n";
 				}
+			}
 
 			for(int j=-1; j<tvc; j++)
 			{
@@ -1568,7 +1572,7 @@ factor : variable
 			}
 
 			//restore local variables (for recursive calls) and temporary variables from the stack after function call
-			string POP_FROM_STACK_CODE = "\t;restoring local variables from the stack after function call\n";
+			string POP_FROM_STACK_CODE = "";
 
 			for(int j=tvc; j>=0; j--)
 			{
@@ -1577,11 +1581,15 @@ factor : variable
 			}
 			
 			if($1->getSymbol_name() == current_function)	//pop local vars only for recursive calls
+			{
+				POP_FROM_STACK_CODE = "\t;restoring local variables from the stack after function call\n";
+
 				for(int j=local_var_list.size()-1; j>=0; j--)
 				{
 					POP_FROM_STACK_CODE += "\
 	POP " + local_var_list[j] + "\n";
 				}
+			}
 
 			//call the function, arguments are placed in stack (in $3.code)
 			string CUR_CODE = "";

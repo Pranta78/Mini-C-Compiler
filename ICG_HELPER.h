@@ -68,7 +68,7 @@ void DeclareVariablesAsm(bool declareTempVar = false)
 
         while(iter)
         {
-            if(iter->getVar_category() == "VARIABLE")
+            if(iter->getVar_category() == "VARIABLE" && !iter->getIs_Parameter())	//no need to declare parameters
                 DATA = DATA + "\t" + getAsmVar(iter->getSymbol_name(), "VARIABLE", true) + "\tDW" + "\t?\n";
             else if(iter->getVar_category() == "ARRAY")
                 DATA = DATA + "\t" + getAsmVar(iter->getSymbol_name(), "ARRAY", true) + "\tDW\t" + to_string(iter->getArray_length()) + "\tDUP\t(?)\n";

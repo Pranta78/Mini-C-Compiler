@@ -1556,7 +1556,8 @@ factor : variable
 			
 			if($1->getSymbol_name() == current_function)	//save local vars only for recursive calls
 			{
-				PUSH_TO_STACK_CODE = "\t;saving local variables in the stack before function call\n";
+				if(local_var_list.size() != 0)
+					PUSH_TO_STACK_CODE = "\t;saving local variables in the stack before function call\n";
 				
 				for(int j=0; j<local_var_list.size(); j++)
 				{
@@ -1582,7 +1583,8 @@ factor : variable
 			
 			if($1->getSymbol_name() == current_function)	//pop local vars only for recursive calls
 			{
-				POP_FROM_STACK_CODE = "\t;restoring local variables from the stack after function call\n";
+				if(local_var_list.size() != 0)
+					POP_FROM_STACK_CODE += "\t;restoring local variables from the stack after function call\n";
 
 				for(int j=local_var_list.size()-1; j>=0; j--)
 				{

@@ -1,71 +1,122 @@
 .MODEL SMALL
 .STACK 100H
 .DATA
-	var_1_1_a	DW	?
-	var_1_1_b	DW	?
-	var_1_1_c	DW	?
-	var_1_1_i	DW	?
+	var_1_1_x	DW	?
+	var_1_2_x	DW	?
+	var_1_3_a	DW	?
+	var_1_3_b	DW	?
 	t0	DW	?
 	t1	DW	?
 .CODE
 
-MAIN PROC
-	MOV AX, @DATA
-	MOV DS, AX
+_fib PROC
+	PUSH BP
+	MOV BP, SP
 
-	;b=0
-	MOV var_1_1_b, 0
-
-	;c=1
-	MOV var_1_1_c, 1
-
-	;for(i=0;i<4;i++)
-	;i=0
-	MOV var_1_1_i, 0
-
-L4:
-	;i<4
-	MOV AX, var_1_1_i
-	CMP AX, 4
-	JNL L0
+	;if(x==0||x==1)
+	MOV AX, WORD PTR [BP+4]
+	CMP AX, 0
+	JNE L0
 	MOV t0, 1
 	JMP L1
 L0:
 	AND t0, 0
 L1:
-
-	CMP t0, 0
-	JE L5
-	;a=3
-	MOV var_1_1_a, 3
-
-	;while(a--)
+	MOV AX, WORD PTR [BP+4]
+	CMP AX, 1
+	JNE L2
+	MOV t1, 1
+	JMP L3
 L2:
-	MOV AX, var_1_1_a
-	MOV t0, AX
-	DEC var_1_1_a
-	CMP t0, 0
-	JE L3
-	;b++
-	MOV AX, var_1_1_b
-	MOV t1, AX
-	INC var_1_1_b
-
-	JMP L2
+	AND t1, 0
 L3:
-	;while loop finished
-	MOV AX, var_1_1_i
-	MOV t1, AX
-	INC var_1_1_i
-	JMP L4
+	CMP t0, 0
+	JNE L4
+	CMP t1, 0
+	JNE L4
+	AND t0, 0
+	JMP L5
+L4:
+	MOV t0, 1
 L5:
-	;for loop finished
-	PUSH var_1_1_a
-	CALL PRINTLN
-	PUSH var_1_1_b
-	CALL PRINTLN
-	PUSH var_1_1_c
-	CALL PRINTLN
+	CMP t0, 0
+	JE L6
+	MOV DX, 1
+	POP BP
+	RET 2
+L6:
+	;if-block finished
+	;saving local variables in the stack before function call
+;arguments:
+	MOV AX, WORD PTR [BP+4]
+	SUB AX, 1
+	MOV t0, AX
+	PUSH t0
+	CALL _fib
+	;saving the return value in DX in a temporary variable
+	MOV t0, DX
+	;restoring local variables from the stack after function call
+	;saving local variables in the stack before function call
+	PUSH t0
+;arguments:
+	MOV AX, WORD PTR [BP+4]
+	SUB AX, 2
+	MOV t1, AX
+	PUSH t1
+	CALL _fib
+	;saving the return value in DX in a temporary variable
+	MOV t1, DX
+	;restoring local variables from the stack after function call
+	MOV AX, t0
+	ADD AX, t1
+	MOV t0, AX
+	MOV DX, t0
+	POP BP
+	RET 2
+
+	POP BP
+	RET 2
+_fib ENDP
+
+_square PROC
+	PUSH BP
+	MOV BP, SP
+
+	MOV AX, WORD PTR [BP+4]
+	IMUL WORD PTR [BP+4]
+	MOV t0, AX
+	MOV DX, t0
+	POP BP
+	RET 2
+
+	POP BP
+	RET 2
+_square ENDP
+
+MAIN PROC
+	MOV AX, @DATA
+	MOV DS, AX
+
+	;a=fib(4)
+;arguments:
+	MOV AX, 4
+	PUSH AX
+	CALL _fib
+	;saving the return value in DX in a temporary variable
+	MOV t0, DX
+	MOV AX, t0
+	MOV var_1_3_a, AX
+
+	;b=fib(5)
+;arguments:
+	MOV AX, 5
+	PUSH AX
+	CALL _fib
+	;saving the return value in DX in a temporary variable
+	MOV t0, DX
+	MOV AX, t0
+	MOV var_1_3_b, AX
+
 
 	;exit program
 	MOV AH, 4CH

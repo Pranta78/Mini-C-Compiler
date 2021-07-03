@@ -1536,7 +1536,7 @@ factor : variable
 
 						//check array non array mismatch of i-th parameter
 						//since the grammer does not allow arrays as function parameters, no need to deal with arrays
-						if( !((variables[i]->getVar_category() == "VARIABLE" && declar_parameter_list[i]->getVar_category() == "VARIABLE")))
+						if( variables[i]->getVar_category() != "FUNCTION" && !((variables[i]->getVar_category() == "VARIABLE" && declar_parameter_list[i]->getVar_category() == "VARIABLE")))
 						{
 							parserlog << "Error at line " << yylineno << " : function \"" << s->getSymbol_name() << "\"  attempted to assign non-array to array or vice versa at parameter " << (i+1) << "\n\n";
 							errorlog << "Error at line " << yylineno << " : function \"" << s->getSymbol_name() << "\"  attempted to assign non-array to array or vice versa at parameter " << (i+1) << "\n\n";
@@ -1757,6 +1757,8 @@ arguments : arguments COMMA logic_expression
 			//with function definition
 			if($3.symbolinfo->getVar_category() == "ARRAY")
 				save_variable($3.symbolinfo, "ARRAY", $3.symbolinfo->getArray_length());
+			else if($3.symbolinfo->getVar_category() == "FUNCTION")
+				save_variable($3.symbolinfo, "FUNCTION");
 			else
 				save_variable($3.symbolinfo, "VARIABLE");
 
@@ -1795,6 +1797,8 @@ arguments : arguments COMMA logic_expression
 			//with function definition
 			if($1.symbolinfo->getVar_category() == "ARRAY")
 				save_variable($1.symbolinfo, "ARRAY", $1.symbolinfo->getArray_length());
+			else if($1.symbolinfo->getVar_category() == "FUNCTION")
+				save_variable($1.symbolinfo, "FUNCTION");
 			else
 				save_variable($1.symbolinfo, "VARIABLE");
 

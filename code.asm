@@ -5,8 +5,6 @@
 	var_1_2_y	DW	?
 	var_1_3_z	DW	?
 	var_1_4_a	DW	?
-	var_1_f	DW	?
-	var_1_g	DW	?
 	t0	DW	?
 .CODE
 
@@ -62,7 +60,8 @@ MAIN PROC
 	;a=3
 	MOV var_1_4_a, 3
 
-	;a=h(g(f(a)))
+	;a=f(h(g(f(a))))
+;arguments:
 ;arguments:
 ;arguments:
 ;arguments:
@@ -76,6 +75,10 @@ MAIN PROC
 	MOV t0, DX
 	PUSH t0
 	CALL _h
+	;saving the return value in DX in a temporary variable
+	MOV t0, DX
+	PUSH t0
+	CALL _f
 	;saving the return value in DX in a temporary variable
 	MOV t0, DX
 	MOV AX, t0
